@@ -1,10 +1,9 @@
-import { Physics } from "phaser";
 import testFiles from '../boardFiles/test.json';
 
 export default class Game extends Phaser.Scene{
 
+    //#region Init Variables and Preload
     public cursors: Phaser.Types.Input.Keyboard.CursorKeys | undefined;
-    // public selector!: Phaser.GameObjects.Image & { body: Phaser.Physics.Arcade.Body };
     public selector1!: Phaser.GameObjects.Image;
     public selector2!: Phaser.GameObjects.Image;
 	public blocks: Record<string, any[]> = {
@@ -15,8 +14,6 @@ export default class Game extends Phaser.Scene{
         'psychicBlocks': []
     }
     public allBlocks: any[] = [];
-    public blocksGroup!: Phaser.Physics.Arcade.Group;
-    public blockSize: number = 50;
     public keyDownObject = {
         left: false,
         up: false,
@@ -28,6 +25,8 @@ export default class Game extends Phaser.Scene{
     public selectedBlock2!: Phaser.GameObjects.Image | null;
     public ceilingLine!: Phaser.GameObjects.Image;
 
+    public blockScale!: number;
+    public blockSize!: number;
     public upSpeed!: number;
     public downSpeed!: number;
     public xBoundLeft!: number;
@@ -39,36 +38,34 @@ export default class Game extends Phaser.Scene{
         super('game');
     }
 
-    preload ()
-    {
-            //settings
-        this.upSpeed = -10;
-        this.downSpeed = 200;
-        this.xBoundLeft = 50;
-        this.xBoundRight = 350;
-        this.yBoundBottom = ((this.game.config.height as number) - this.blockSize/2);
-        this.yBoundTop = 25;
-    }
-
     init() {
         this.cursors = this.input.keyboard?.createCursorKeys();
     }
-    
+
+    preload ()
+    {
+        this.blockScale = 0.2;
+        this.blockSize = 50;
+        this.upSpeed = -10;
+        this.downSpeed = 200;
+        this.xBoundLeft = 50;
+        this.xBoundRight = 250;
+        this.yBoundBottom = ((this.game.config.height as number) - this.blockSize/2);
+        this.yBoundTop = 25;
+    }
+    //#endregion
+
+    //#region Create Functions
     create ()
     {
-        this.blocksGroup = this.physics.add.group();
-        this.blocksGroup.setVelocityY(this.upSpeed)
-
         this.createSelectors();
         // this.createRandom(6,8);
         this.createFromFile(testFiles.test3);
     }
 
-
-
     createSelectors(): void {
         this.selector1 = this.add.image(50, 0, 'selector');
-        this.selector1.scale = 0.2;
+        this.selector1.scale = this.blockScale;
         this.selector1.setDepth(100);
         this.physics.add.existing(this.selector1, false);
         if(this.selector1.body != null){
@@ -77,7 +74,7 @@ export default class Game extends Phaser.Scene{
         }
 
         this.selector2 = this.add.image(100, 0, 'selector');
-        this.selector2.scale = 0.2;
+        this.selector2.scale = this.blockScale;
         this.selector2.setDepth(100);
         this.physics.add.existing(this.selector2, false);
         if(this.selector2.body != null){
@@ -124,7 +121,7 @@ export default class Game extends Phaser.Scene{
                 this.physics.add.existing(newBlock, false);
                 if(newBlock.body != null){ 
                     //this is a godsend, detects boundarys but only for blocks above and below not corners cuz circle :)
-                    newBlock.body.setCircle(130);
+                    newBlock.body.setCircle(this.blockSize/this.blockScale*0.53);
                     newBlock.body.velocity.y = this.upSpeed;
                 }
                 this.addToBlockBucket(newBlock);
@@ -140,8 +137,9 @@ export default class Game extends Phaser.Scene{
         if(newBlock.texture.key == 'psychicBlock') this.blocks.psychicBlocks.push(newBlock);
         if(newBlock.texture.key == 'fireBlock') this.blocks.fireBlocks.push(newBlock);
     }
+    //#endregion
 
-    //UPDATE AND RELATED FUNCTIONS
+    //#region Update Functions
     update(){
         this.setBlockOpacity();
         this.handleUserInput()
@@ -149,6 +147,9 @@ export default class Game extends Phaser.Scene{
         this.makeBlocksFall();
 	}
 
+    //setBlockOpacity
+    //using block opacity to determine whether blocks can be interacted with
+    //blocks with opacity != 1, shouldn't interact with other blocks
     setBlockOpacity(): void {
         this.allBlocks.forEach(block => {
             if(block.getBottomCenter().y > this.game.config.height){
@@ -240,6 +241,8 @@ export default class Game extends Phaser.Scene{
         });
     }
 
+    //findAndClearChainsOfASingleColor 
+    //algorithm to find and clear chains of blocks, uses DFS and physics.overlap to find longest chains
     findAndClearChainsOfASingleColor(blocks: any) {
         let visited = new Set();
         var that = this;
@@ -299,7 +302,6 @@ export default class Game extends Phaser.Scene{
     }
 
     makeBlocksFall(): void {
-        // console.log(this.allBlocks[0]);
         let fallBool = true;
         this.allBlocks.forEach(block => {
             this.allBlocks.forEach(otherBlock => {
@@ -316,5 +318,6 @@ export default class Game extends Phaser.Scene{
             fallBool = true;
         });
     }
+    //#endregion
 
 }
