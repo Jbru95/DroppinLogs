@@ -19,7 +19,8 @@ export default class Game extends Phaser.Scene{
         up: false,
         down: false, 
         right: false,
-        space: false
+        space: false,
+        shift: false
     }
     public selectedBlock1!: Phaser.GameObjects.Image | null;
     public selectedBlock2!: Phaser.GameObjects.Image | null;
@@ -64,7 +65,7 @@ export default class Game extends Phaser.Scene{
     }
 
     createSelectors(): void {
-        this.selector1 = this.add.image(50, 0, 'selector');
+        this.selector1 = this.add.image(150, 450, 'selector');
         this.selector1.scale = this.blockScale;
         this.selector1.setDepth(100);
         this.physics.add.existing(this.selector1, false);
@@ -73,7 +74,7 @@ export default class Game extends Phaser.Scene{
             this.selector1.body.velocity.y = this.upSpeed;
         }
 
-        this.selector2 = this.add.image(100, 0, 'selector');
+        this.selector2 = this.add.image(200, 450, 'selector');
         this.selector2.scale = this.blockScale;
         this.selector2.setDepth(100);
         this.physics.add.existing(this.selector2, false);
@@ -105,7 +106,7 @@ export default class Game extends Phaser.Scene{
         let x = 50;
         let y = 50;
         let offsetx = 50;
-        let offsety = 50;
+        let offsety = 500;
 
         let charArray = boardString.split(',');
         const height = charArray.length;
@@ -169,6 +170,15 @@ export default class Game extends Phaser.Scene{
         if(this.cursors?.space.isUp){
             this.keyDownObject.space = false;
         }
+        //when user hits shift, it should push up all the blocks so the next row is revealed
+		if(this.cursors?.shift.isDown && this.keyDownObject.shift == false){
+            this.upSpeed = 20*this.upSpeed;
+			this.keyDownObject.shift = true;
+            this.time.delayedCall(215, () => this.upSpeed = this.upSpeed/20);
+		}
+		if(this.cursors?.shift.isUp){
+			this.keyDownObject.shift = false;
+		}	
 		if(this.cursors?.left.isDown && this.keyDownObject.left == false){
             if(this.selector1.x > this.xBoundLeft){
                 this.selector1.x -= this.blockSize;
@@ -259,7 +269,7 @@ export default class Game extends Phaser.Scene{
         }
     
         function getConnectedNeighbors(block) {
-            //a block is a valid neightbor that can be cleared
+            //return blocks that are valid neightbor that can be cleared
             return blocks.filter(otherBlock => {
                 return (that.physics.overlap(block, otherBlock)  //if the blocks are overlapping
                         && block.body.velocity.y == that.upSpeed //and both blocks are at rest(not mid fall)
