@@ -1,11 +1,12 @@
 import testFiles from '../boardFiles/test.json';
+import { Block } from '../entities/block';
 
 export default class Game extends Phaser.Scene{
 
     //#region Init Variables and Preload
     public cursors: Phaser.Types.Input.Keyboard.CursorKeys | undefined;
-    public selector1!: Phaser.GameObjects.Image;
-    public selector2!: Phaser.GameObjects.Image;
+    public selector1!: Phaser.GameObjects.Sprite;
+    public selector2!: Phaser.GameObjects.Sprite;
 	public blocks: Record<string, any[]> = {
         'electricBlocks': [],
         'grassBlocks': [],
@@ -13,7 +14,8 @@ export default class Game extends Phaser.Scene{
         'fireBlocks': [],
         'psychicBlocks': []
     }
-    public allBlocks: any[] = [];
+    public boardArray: Block[][] = [];
+    public allBlocks: Block[] = [];
     public keyDownObject = {
         left: false,
         up: false,
@@ -22,9 +24,9 @@ export default class Game extends Phaser.Scene{
         space: false,
         shift: false
     }
-    public selectedBlock1!: Phaser.GameObjects.Image | null;
-    public selectedBlock2!: Phaser.GameObjects.Image | null;
-    public ceilingLine!: Phaser.GameObjects.Image;
+    public selectedBlock1!: Block | undefined;
+    public selectedBlock2!: Block | undefined;
+    public ceilingLine!: Phaser.GameObjects.Sprite;
 
     public blockScale!: number;
     public blockSize!: number;
@@ -65,7 +67,7 @@ export default class Game extends Phaser.Scene{
     }
 
     createSelectors(): void {
-        this.selector1 = this.add.image(150, 450, 'selector');
+        this.selector1 = this.add.sprite(150, 450, 'selector');
         this.selector1.scale = this.blockScale;
         this.selector1.setDepth(100);
         this.physics.add.existing(this.selector1, false);
@@ -74,7 +76,7 @@ export default class Game extends Phaser.Scene{
             this.selector1.body.velocity.y = this.upSpeed;
         }
 
-        this.selector2 = this.add.image(200, 450, 'selector');
+        this.selector2 = this.add.sprite(200, 450, 'selector');
         this.selector2.scale = this.blockScale;
         this.selector2.setDepth(100);
         this.physics.add.existing(this.selector2, false);
@@ -102,7 +104,7 @@ export default class Game extends Phaser.Scene{
     }
 
     createBoard(boardString: string): void {
-        const possibleBlockArray: Array<string> = ['waterBlock', 'fireBlock', 'grassBlock', 'lightningBlock', 'psychicBlock'];
+        const possibleBlockArray: Array<string> = ['waterBlock', 'fireBlock', 'grassBlock', 'lightningBlock', 'psychicBlock', 'empty'];
         let x = 50;
         let y = 50;
         let offsetx = 50;
@@ -111,32 +113,36 @@ export default class Game extends Phaser.Scene{
         let charArray = boardString.split(',');
         const height = charArray.length;
         const width = charArray[0].length;
-        for (let i=0; i < height; i++) {            
+        for (let i=0; i < height; i++) {    
+            let blockRow: Block[] = [];
             for(let j=0; j < width; j++){
                 if(charArray[i][j] == " "){
                     continue;
                 }
-                const blockType = possibleBlockArray.find(el => el[0] == charArray[i][j]);
-                let newBlock = this.add.image(x*j + offsetx, y*i + offsety, blockType);
-                newBlock.scale = this.blockSize/newBlock.height;
-                this.physics.add.existing(newBlock, false);
-                if(newBlock.body != null){ 
-                    //this is a godsend, detects boundarys but only for blocks above and below not corners cuz circle :)
-                    newBlock.body.setCircle(this.blockSize/this.blockScale*0.53);
-                    newBlock.body.velocity.y = this.upSpeed;
+                const blockType = possibleBlockArray.find(el => el[0] == charArray[i][j])!;
+
+                let blockSprite = this.add.sprite(x*j + offsetx, y*i + offsety, blockType)
+                blockSprite.scale = this.blockSize/blockSprite.height;
+                this.physics.add.existing(blockSprite, false);
+                if(blockSprite.body != null){ 
+                    blockSprite.body.velocity.y = this.upSpeed;
                 }
-                this.addToBlockBucket(newBlock);
-                this.allBlocks.push(newBlock);
+                let blockObj = new Block(i,j, blockSprite, blockType, true);
+                blockRow.push(blockObj);
+                this.addToBlockBucket(blockObj);
+                this.allBlocks.push(blockObj);
             }
+            this.boardArray.push(blockRow);
         }
+        console.log(this.boardArray);
     }
 
-    addToBlockBucket(newBlock: Phaser.GameObjects.Image): void {
-        if(newBlock.texture.key == 'lightningBlock') this.blocks.electricBlocks.push(newBlock);
-        if(newBlock.texture.key == 'waterBlock') this.blocks.waterBlocks.push(newBlock);
-        if(newBlock.texture.key == 'grassBlock') this.blocks.grassBlocks.push(newBlock);
-        if(newBlock.texture.key == 'psychicBlock') this.blocks.psychicBlocks.push(newBlock);
-        if(newBlock.texture.key == 'fireBlock') this.blocks.fireBlocks.push(newBlock);
+    addToBlockBucket(newBlock: Block): void {
+        if(newBlock.blockSprite.texture.key == 'lightningBlock') this.blocks.electricBlocks.push(newBlock);
+        if(newBlock.blockSprite.texture.key == 'waterBlock') this.blocks.waterBlocks.push(newBlock);
+        if(newBlock.blockSprite.texture.key == 'grassBlock') this.blocks.grassBlocks.push(newBlock);
+        if(newBlock.blockSprite.texture.key == 'psychicBlock') this.blocks.psychicBlocks.push(newBlock);
+        if(newBlock.blockSprite.texture.key == 'fireBlock') this.blocks.fireBlocks.push(newBlock);
     }
     //#endregion
 
@@ -149,18 +155,21 @@ export default class Game extends Phaser.Scene{
 	}
 
     //setBlockOpacity
-    //using block opacity to determine whether blocks can be interacted with
-    //blocks with opacity != 1, shouldn't interact with other blocks
     setBlockOpacity(): void {
+        const height: number = Number.parseInt(this.game.config.height.toString());
         this.allBlocks.forEach(block => {
-            if(block.getBottomCenter().y > this.game.config.height){
-                block.alpha = 0.5;
+            if(block.blockSprite.getBottomCenter().y! > height){
+                block.blockSprite.alpha = 0.5;
             }
             else{
-                block.clearAlpha()
+                block.blockSprite.clearAlpha();
             }
         })
     }
+
+    //TODO: Set types of everything below based on Block class, and remove any hacky collision/opacity checking
+    // Eventually replace with array based positioning/checking/alogirthming, and just use animations to make it look smooth after
+
 
     handleUserInput(): void {
         if(this.cursors?.space.isDown && this.keyDownObject.space == false){
@@ -218,8 +227,8 @@ export default class Game extends Phaser.Scene{
     }
 
     swapOrMoveBlocks(): void {
-        this.selectedBlock1 = null;
-        this.selectedBlock2 = null;
+        this.selectedBlock1 = undefined;
+        this.selectedBlock2 = undefined;
         Object.values(this.blocks).forEach(blockArray => {
             blockArray.forEach(indivBlock => {
                 if(this.physics.overlap(this.selector1, indivBlock)){
@@ -230,7 +239,7 @@ export default class Game extends Phaser.Scene{
                 }            
             });
         });
-        if(this.selectedBlock1 != null && this.selectedBlock2 != null){
+        if(this.selectedBlock1 != undefined && this.selectedBlock2 != undefined){
             const tempX = this.selectedBlock2.x;
             const tempY = this.selectedBlock2.y;
             this.selectedBlock2.setPosition(this.selectedBlock1.x, this.selectedBlock1.y);
@@ -312,21 +321,24 @@ export default class Game extends Phaser.Scene{
     }
 
     makeBlocksFall(): void {
-        let fallBool = true;
-        this.allBlocks.forEach(block => {
-            this.allBlocks.forEach(otherBlock => {
-                if((this.physics.overlap(block, otherBlock) && otherBlock.y > block.y + 30) || block.y >= this.yBoundBottom){
-                    fallBool = false;
-                }
-            });
-            if(fallBool){
-                block.body.setVelocityY(this.downSpeed);
-            }
-            else{
-                block.body.setVelocityY(this.upSpeed);
-            }
-            fallBool = true;
-        });
+
+        //Base this on the position of the blocks in the array, if theres one in the spot under it, not based on colissions, they get weird
+
+        // let fallBool = true;
+        // this.allBlocks.forEach(block => {
+        //     this.allBlocks.forEach(otherBlock => {
+        //         if((this.physics.overlap(block, otherBlock) && otherBlock.y > block.y + 30) || block.y >= this.yBoundBottom){
+        //             fallBool = false;
+        //         }
+        //     });
+        //     if(fallBool){
+        //         block.blockSprite.body.setVelocityY(this.downSpeed);
+        //     }
+        //     else{
+        //         block.blockSprite.body.setVelocityY(this.upSpeed);
+        //     }
+        //     fallBool = true;
+        // });
     }
     //#endregion
 
