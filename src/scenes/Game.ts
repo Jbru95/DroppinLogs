@@ -1,5 +1,5 @@
 import testFiles from '../boardFiles/test.json';
-import { Block } from '../entities/block';
+import { Block, BlockTypes } from '../entities/block';
 import { Selector } from '../entities/selector';
 
 export default class Game extends Phaser.Scene{
@@ -8,15 +8,8 @@ export default class Game extends Phaser.Scene{
     public cursors: Phaser.Types.Input.Keyboard.CursorKeys | undefined;
     public selector1!: Selector;
     public selector2!: Selector;
-	public blocks: Record<string, any[]> = {
-        'electricBlocks': [],
-        'grassBlocks': [],
-        'waterBlocks': [],
-        'fireBlocks': [],
-        'psychicBlocks': []
-    }
     public boardArray: Block[][] = [];
-    public allBlocks: Block[] = [];
+
     public keyDownObject = {
         left: false,
         up: false,
@@ -25,9 +18,8 @@ export default class Game extends Phaser.Scene{
         space: false,
         shift: false
     }
-    // public selectedBlock1!: Block;
-    // public selectedBlock2!: Block;
     public ceilingLine!: Phaser.GameObjects.Sprite;
+    public blockTypes!: BlockTypes;
 
     public blockScale!: number; //number to convert between index and pixel spaces
     public blockSize!: number; //pixel
@@ -37,8 +29,10 @@ export default class Game extends Phaser.Scene{
     public xBoundRight!: number; //index based
     public yBoundBottom!: number;
     public yBoundTop!: number;
+    public boardWidth!: number;
     public offsetx!: number;
     public offsety!: number;
+    public shouldCheckForMatches: boolean = false;
 
     constructor(){
         super('game');
@@ -52,7 +46,7 @@ export default class Game extends Phaser.Scene{
     {
         this.blockScale = 0.2;
         this.blockSize = 50;
-        this.upSpeed = -10;
+        this.upSpeed = -0;
         this.downSpeed = 200;
         this.xBoundLeft = 50;
         this.xBoundRight = 250;
@@ -129,51 +123,41 @@ export default class Game extends Phaser.Scene{
                 }
                 let blockObj = new Block(i,j, blockSprite, blockType, true);
                 blockRow.push(blockObj);
-                this.addToBlockBucket(blockObj);
-                this.allBlocks.push(blockObj);
             }
             this.boardArray.push(blockRow);
         }
-        console.log(this.boardArray);
-    }
-
-    addToBlockBucket(newBlock: Block): void {
-        if(newBlock.blockSprite.texture.key == 'lightningBlock') this.blocks.electricBlocks.push(newBlock);
-        if(newBlock.blockSprite.texture.key == 'waterBlock') this.blocks.waterBlocks.push(newBlock);
-        if(newBlock.blockSprite.texture.key == 'grassBlock') this.blocks.grassBlocks.push(newBlock);
-        if(newBlock.blockSprite.texture.key == 'psychicBlock') this.blocks.psychicBlocks.push(newBlock);
-        if(newBlock.blockSprite.texture.key == 'fireBlock') this.blocks.fireBlocks.push(newBlock);
     }
     //#endregion
 
     //#region Update Functions
     update(){
         this.setBlocksOutOfFrame();
-        this.handleUserInput()
-        this.clearBlocks();
-        this.makeBlocksFall();
+        this.handleUserInput();
+        if(this.shouldCheckForMatches){
+            this.clearBlocks();
+        }
 	}
 
     //setBlocksOutOfFrame
     setBlocksOutOfFrame(): void {
         const height: number = Number.parseInt(this.game.config.height.toString());
-        this.allBlocks.forEach(block => {
-            if(block.blockSprite.getBottomCenter().y! > height){
-                block.blockSprite.alpha = 0.5;
-                block.isInPlay = false;
-            }
-            else{
-                block.blockSprite.clearAlpha();
-                block.isInPlay = true;
-            }
+        this.boardArray.forEach(row => {
+            row.forEach(block => {
+                if(block.blockSprite.getBottomCenter().y! > height){
+                    block.blockSprite.alpha = 0.5;
+                    block.isInPlay = false;
+                }
+                else{
+                    block.blockSprite.clearAlpha();
+                    block.isInPlay = true;
+                }
+            })
         })
     }
 
-    //TODO: Set types of everything below based on Block class, and remove any hacky collision/opacity checking
-    // Eventually replace with array based positioning/checking/alogirthming, and just use animations to make it look smooth after
-
     handleUserInput(): void {
         if(this.cursors?.space.isDown && this.keyDownObject.space == false){
+            this.shouldCheckForMatches = true;
             this.swapOrMoveBlocks();
             this.keyDownObject.space = true;
         }
@@ -261,90 +245,68 @@ export default class Game extends Phaser.Scene{
     }
 
     clearBlocks(): void {
-        Object.values(this.blocks).forEach(blockArray => {
-            this.findAndClearChainsOfASingleColor(blockArray)
-        });
+        let blocksToRemove = this.matchAndReturnsBlocks(this.boardArray);
+        if(blocksToRemove.size == 0){
+            this.shouldCheckForMatches = false;
+        }
+        else{
+            this.clearChainsFromBoard(blocksToRemove);
+        }
     }
 
-    //findAndClearChainsOfASingleColor 
-    //algorithm to find and clear chains of blocks, uses DFS and physics.overlap to find longest chains
-    findAndClearChainsOfASingleColor(blocks: any) {
-        let visited = new Set();
-        var that = this;
-        function dfs(block, chain) {
-            if (visited.has(block)) {
-                return;
-            }
-            visited.add(block);
-            chain.push(block);
-            const neighbors = getConnectedNeighbors(block);
-            for (const neighbor of neighbors) {
-                dfs(neighbor, chain);
-            }
-        }
-    
-        function getConnectedNeighbors(block) {
-            //return blocks that are valid neightbor that can be cleared
-            return blocks.filter(otherBlock => {
-                return (that.physics.overlap(block, otherBlock)  //if the blocks are overlapping
-                        && block.body.velocity.y == that.upSpeed //and both blocks are at rest(not mid fall)
-                        && otherBlock.body.velocity.y == that.upSpeed)
-                        && block.alpha == 1 //opacity = 1 (blocks arent totally above the floor)
-                        && otherBlock.alpha == 1
-            });
-        }
-        function clearChain(chain: any) {
-            if (chain.length >= 3) {
-                that.removeBlockChainFromGame(chain);
+    matchAndReturnsBlocks(board: Block[][]): Set<string>{
+        const chains = new Set<string>();
+
+        //horizontal chain detection
+        for (let row = 0; row < board.length; row++) {
+            for (let col = 0; col < board[row].length; col++) {
+                const block = board[row][col];
+                if (block.blockType == BlockTypes.emptyBlock || !block.isInPlay) continue;
+        
+                // Check to the right (horizontal match)
+                let count = 1;
+                while (col + count < board[row].length && board[row][col + count]?.blockType === block.blockType && board[row][col + count].isInPlay) {
+                    count++;
+                }
+        
+                // If 3 or more blocks match, mark them
+                if (count >= 3) {
+                    for (let i = 0; i < count; i++) {
+                        chains.add(`${row},${col + i}`);
+                    }
+                }
             }
         }
-        for (let block of blocks) {
-            visited = new Set();
-            const chain = [];
-            dfs(block, chain);
-            clearChain(chain);
+
+        // Vertical match detection
+        for (let col = 0; col < board[0].length; col++) {
+            for (let row = 0; row < board.length; row++) {
+                const block = board[row][col];
+                if (block.blockType == BlockTypes.emptyBlock || !block.isInPlay) continue;
+
+                // Check downward (vertical match)
+                let count = 1;
+                while (row + count < board.length && board[row + count][col]?.blockType === block.blockType && board[row + count][col]?.isInPlay) {
+                    count++;
+                }
+
+                // If 3 or more blocks match, mark them
+                if (count >= 3) {
+                    for (let i = 0; i < count; i++) {
+                        chains.add(`${row + i},${col}`);
+                    }
+                }
+            }
         }
+        return chains;
     }
 
-    removeBlockFromGame(block: any): void {
-        Object.entries(this.blocks).forEach(entry => {
-            const filteredBlocks = entry[1].filter(indivBlock => indivBlock != block);
-            this.blocks[entry[0]] = filteredBlocks;
+    clearChainsFromBoard(blockCoords: Set<string>){
+        blockCoords.forEach(blockCoord => {
+            const [row, col] = blockCoord.split(',').map(Number);
+            this.boardArray[row][col].blockType = BlockTypes.emptyBlock;
+            this.boardArray[row][col].blockSprite.setTexture(BlockTypes.emptyBlock);
         });
-        this.allBlocks.filter(el => el != block);
-        block.destroy()
-    }
-
-    removeBlockChainFromGame(chain: any[]){
-        Object.entries(this.blocks).forEach(entry => {
-            const filteredBlocks = entry[1].filter(indivBlock => (chain.findIndex(chainBlock => chainBlock == indivBlock) == -1));
-            this.blocks[entry[0]] = filteredBlocks;
-        });
-        chain.forEach(block => {
-            this.allBlocks = this.allBlocks.filter(el => el != block);
-            block.destroy()
-        });
-    }
-
-    makeBlocksFall(): void {
-
-        //Base this on the position of the blocks in the array, if theres one in the spot under it, not based on colissions, they get weird
-
-        // let fallBool = true;
-        // this.allBlocks.forEach(block => {
-        //     this.allBlocks.forEach(otherBlock => {
-        //         if((this.physics.overlap(block, otherBlock) && otherBlock.y > block.y + 30) || block.y >= this.yBoundBottom){
-        //             fallBool = false;
-        //         }
-        //     });
-        //     if(fallBool){
-        //         block.blockSprite.body.setVelocityY(this.downSpeed);
-        //     }
-        //     else{
-        //         block.blockSprite.body.setVelocityY(this.upSpeed);
-        //     }
-        //     fallBool = true;
-        // });
     }
     //#endregion
 
