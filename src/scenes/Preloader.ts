@@ -10,7 +10,8 @@ export default class Preloader extends Phaser.Scene{
         this.load.image('waterBlock', 'textures/WaterBlock.png');
         this.load.image('grassBlock', 'textures/GrassBlock.png');
         this.load.image('lightningBlock', 'textures/LightningBlock.png');
-        this.load.image('psychicBlock', 'textures/PsychicBlock.png')
+        this.load.image('psychicBlock', 'textures/PsychicBlock.png');
+        this.load.image('emptyBlock', 'textures/EmptyBlock.png');
         this.load.image('selector', 'textures/Selector.png');
     }
 

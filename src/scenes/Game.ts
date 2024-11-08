@@ -1,12 +1,13 @@
 import testFiles from '../boardFiles/test.json';
 import { Block } from '../entities/block';
+import { Selector } from '../entities/selector';
 
 export default class Game extends Phaser.Scene{
 
     //#region Init Variables and Preload
     public cursors: Phaser.Types.Input.Keyboard.CursorKeys | undefined;
-    public selector1!: Phaser.GameObjects.Sprite;
-    public selector2!: Phaser.GameObjects.Sprite;
+    public selector1!: Selector;
+    public selector2!: Selector;
 	public blocks: Record<string, any[]> = {
         'electricBlocks': [],
         'grassBlocks': [],
@@ -24,18 +25,20 @@ export default class Game extends Phaser.Scene{
         space: false,
         shift: false
     }
-    public selectedBlock1!: Block | undefined;
-    public selectedBlock2!: Block | undefined;
+    // public selectedBlock1!: Block;
+    // public selectedBlock2!: Block;
     public ceilingLine!: Phaser.GameObjects.Sprite;
 
-    public blockScale!: number;
-    public blockSize!: number;
+    public blockScale!: number; //number to convert between index and pixel spaces
+    public blockSize!: number; //pixel
     public upSpeed!: number;
     public downSpeed!: number;
-    public xBoundLeft!: number;
-    public xBoundRight!: number;
+    public xBoundLeft!: number; //index based
+    public xBoundRight!: number; //index based
     public yBoundBottom!: number;
     public yBoundTop!: number;
+    public offsetx!: number;
+    public offsety!: number;
 
     constructor(){
         super('game');
@@ -55,6 +58,8 @@ export default class Game extends Phaser.Scene{
         this.xBoundRight = 250;
         this.yBoundBottom = ((this.game.config.height as number) - this.blockSize/2);
         this.yBoundTop = 25;
+        this.offsetx = 50;
+        this.offsety = 500;
     }
     //#endregion
 
@@ -67,23 +72,23 @@ export default class Game extends Phaser.Scene{
     }
 
     createSelectors(): void {
-        this.selector1 = this.add.sprite(150, 450, 'selector');
-        this.selector1.scale = this.blockScale;
-        this.selector1.setDepth(100);
-        this.physics.add.existing(this.selector1, false);
-        if(this.selector1.body != null){
-            this.selector1.body.setSize(50, 50, true);
-            this.selector1.body.velocity.y = this.upSpeed;
+        let selector1Sprite = this.add.sprite(150, 500, 'selector');
+        selector1Sprite.scale = this.blockScale;
+        selector1Sprite.setDepth(100);
+        this.physics.add.existing(selector1Sprite, false);
+        if(selector1Sprite.body != null){
+            selector1Sprite.body.velocity.y = this.upSpeed;
         }
+        this.selector1 = new Selector(0, 2, selector1Sprite);
 
-        this.selector2 = this.add.sprite(200, 450, 'selector');
-        this.selector2.scale = this.blockScale;
-        this.selector2.setDepth(100);
-        this.physics.add.existing(this.selector2, false);
-        if(this.selector2.body != null){
-            this.selector2.body.setSize(50, 50, true);
-            this.selector2.body.velocity.y = this.upSpeed;
+        let selector2Sprite = this.add.sprite(200, 500, 'selector');
+        selector2Sprite.scale = this.blockScale;
+        selector2Sprite.setDepth(100);
+        this.physics.add.existing(selector2Sprite, false);
+        if(selector2Sprite.body != null){
+            selector2Sprite.body.velocity.y = this.upSpeed;
         }
+        this.selector2 = new Selector(0,3, selector2Sprite);
     }
     
     createFromFile(boardString: string): void {
@@ -104,11 +109,9 @@ export default class Game extends Phaser.Scene{
     }
 
     createBoard(boardString: string): void {
-        const possibleBlockArray: Array<string> = ['waterBlock', 'fireBlock', 'grassBlock', 'lightningBlock', 'psychicBlock', 'empty'];
+        const possibleBlockArray: Array<string> = ['waterBlock', 'fireBlock', 'grassBlock', 'lightningBlock', 'psychicBlock', 'emptyBlock'];
         let x = 50;
         let y = 50;
-        let offsetx = 50;
-        let offsety = 500;
 
         let charArray = boardString.split(',');
         const height = charArray.length;
@@ -116,12 +119,9 @@ export default class Game extends Phaser.Scene{
         for (let i=0; i < height; i++) {    
             let blockRow: Block[] = [];
             for(let j=0; j < width; j++){
-                if(charArray[i][j] == " "){
-                    continue;
-                }
                 const blockType = possibleBlockArray.find(el => el[0] == charArray[i][j])!;
 
-                let blockSprite = this.add.sprite(x*j + offsetx, y*i + offsety, blockType)
+                let blockSprite = this.add.sprite(x*j + this.offsetx, y*i + this.offsety, blockType)
                 blockSprite.scale = this.blockSize/blockSprite.height;
                 this.physics.add.existing(blockSprite, false);
                 if(blockSprite.body != null){ 
@@ -148,28 +148,29 @@ export default class Game extends Phaser.Scene{
 
     //#region Update Functions
     update(){
-        this.setBlockOpacity();
+        this.setBlocksOutOfFrame();
         this.handleUserInput()
         this.clearBlocks();
         this.makeBlocksFall();
 	}
 
-    //setBlockOpacity
-    setBlockOpacity(): void {
+    //setBlocksOutOfFrame
+    setBlocksOutOfFrame(): void {
         const height: number = Number.parseInt(this.game.config.height.toString());
         this.allBlocks.forEach(block => {
             if(block.blockSprite.getBottomCenter().y! > height){
                 block.blockSprite.alpha = 0.5;
+                block.isInPlay = false;
             }
             else{
                 block.blockSprite.clearAlpha();
+                block.isInPlay = true;
             }
         })
     }
 
     //TODO: Set types of everything below based on Block class, and remove any hacky collision/opacity checking
     // Eventually replace with array based positioning/checking/alogirthming, and just use animations to make it look smooth after
-
 
     handleUserInput(): void {
         if(this.cursors?.space.isDown && this.keyDownObject.space == false){
@@ -188,37 +189,60 @@ export default class Game extends Phaser.Scene{
 		if(this.cursors?.shift.isUp){
 			this.keyDownObject.shift = false;
 		}	
+        
 		if(this.cursors?.left.isDown && this.keyDownObject.left == false){
-            if(this.selector1.x > this.xBoundLeft){
-                this.selector1.x -= this.blockSize;
-                this.selector2.x -= this.blockSize;
+            if(this.selector1.colNum > (this.xBoundLeft - this.offsetx)/this.blockSize){
+                this.selector1.colNum -= 1;
+                this.selector2.colNum -= 1;
+
+                //debating whether I should even do this here, or just make all the array based calculations then just repaint the blocks
+                //and selectors based on the array at the start of each frame, will need to do this if we have multiplayer with array stuff on backend
+                //and frontend just does painting and handling user input.
+                this.selector1.selectorSprite.x -= this.blockSize;
+                this.selector2.selectorSprite.x -= this.blockSize;
             }
 			this.keyDownObject.left = true;
 		}
 		if(this.cursors?.left.isUp){
 			this.keyDownObject.left = false;
 		}		
+
 		if(this.cursors?.right.isDown && this.keyDownObject.right == false){
-            if(this.selector1.x < this.xBoundRight){
-                this.selector1.x += this.blockSize;
-                this.selector2.x += this.blockSize;
+            if(this.selector1.colNum < (this.xBoundRight - this.offsetx)/this.blockSize){
+                this.selector1.colNum += 1;
+                this.selector2.colNum += 1;
+
+                this.selector1.selectorSprite.x += this.blockSize;
+                this.selector2.selectorSprite.x += this.blockSize;
             }
 			this.keyDownObject.right = true;
 		}		
 		if(this.cursors?.right.isUp){
 			this.keyDownObject.right = false;
 		}		
+
 		if(this.cursors?.up.isDown && this.keyDownObject.up == false){
-			this.selector1.y -= this.blockSize;
-            this.selector2.y -= this.blockSize;
+            //may need to add y bounds eventually
+			this.selector1.rowNum -= 1;
+            this.selector2.rowNum -= 1;
+
+            this.selector1.selectorSprite.y -= this.blockSize;
+            this.selector2.selectorSprite.y -= this.blockSize;
+
 			this.keyDownObject.up = true;
 		}	
 		if(this.cursors?.up.isUp){
 			this.keyDownObject.up = false;
 		}			
+
 		if(this.cursors?.down.isDown && this.keyDownObject.down == false){
-			this.selector1.y += this.blockSize;
-            this.selector2.y += this.blockSize;
+            //may need to add y bounds eventually
+			this.selector1.rowNum += 1;
+            this.selector2.rowNum += 1;
+
+            this.selector1.selectorSprite.y += this.blockSize;
+            this.selector2.selectorSprite.y += this.blockSize;
+
 			this.keyDownObject.down = true;
 		}	
 		if(this.cursors?.down.isUp){
@@ -227,31 +251,13 @@ export default class Game extends Phaser.Scene{
     }
 
     swapOrMoveBlocks(): void {
-        this.selectedBlock1 = undefined;
-        this.selectedBlock2 = undefined;
-        Object.values(this.blocks).forEach(blockArray => {
-            blockArray.forEach(indivBlock => {
-                if(this.physics.overlap(this.selector1, indivBlock)){
-                    this.selectedBlock1 = indivBlock;
-                }
-                if(this.physics.overlap(this.selector2, indivBlock)){
-                    this.selectedBlock2 = indivBlock;
-                }            
-            });
-        });
-        if(this.selectedBlock1 != undefined && this.selectedBlock2 != undefined){
-            const tempX = this.selectedBlock2.x;
-            const tempY = this.selectedBlock2.y;
-            this.selectedBlock2.setPosition(this.selectedBlock1.x, this.selectedBlock1.y);
-            this.selectedBlock1.setPosition(tempX, tempY);
-            this.keyDownObject.space = true;
-        }
-        else if(this.selectedBlock1 == null && this.selectedBlock2 != null){
-            this.selectedBlock2.setPosition(this.selector1.x, this.selector1.y);
-        }
-        else if(this.selectedBlock2 == null && this.selectedBlock1 != null){
-            this.selectedBlock1.setPosition(this.selector2.x, this.selector2.y);
-        }
+        //animate them to slide like .1 seconds before making this swap to make it look smooth
+        let block1Type = this.boardArray[this.selector1.rowNum][this.selector1.colNum].blockType;
+        this.boardArray[this.selector1.rowNum][this.selector1.colNum].blockType = this.boardArray[this.selector2.rowNum][this.selector2.colNum].blockType;
+        this.boardArray[this.selector2.rowNum][this.selector2.colNum].blockType = block1Type;
+
+        this.boardArray[this.selector1.rowNum][this.selector1.colNum].blockSprite.setTexture(this.boardArray[this.selector2.rowNum][this.selector2.colNum].blockSprite.texture.key);
+        this.boardArray[this.selector2.rowNum][this.selector2.colNum].blockSprite.setTexture(block1Type);
     }
 
     clearBlocks(): void {
