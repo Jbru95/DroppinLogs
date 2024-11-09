@@ -1,6 +1,8 @@
 import testFiles from '../boardFiles/test.json';
 import { Block, BlockTypes } from '../entities/block';
 import { Selector } from '../entities/selector';
+import * as _ from 'lodash';
+
 
 export default class Game extends Phaser.Scene{
 
@@ -32,7 +34,9 @@ export default class Game extends Phaser.Scene{
     public boardWidth!: number;
     public offsetx!: number;
     public offsety!: number;
+
     public shouldCheckForMatches: boolean = false;
+    public shouldCheckForFalling: boolean = false;
 
     constructor(){
         super('game');
@@ -46,7 +50,7 @@ export default class Game extends Phaser.Scene{
     {
         this.blockScale = 0.2;
         this.blockSize = 50;
-        this.upSpeed = -0;
+        this.upSpeed = -10;
         this.downSpeed = 200;
         this.xBoundLeft = 50;
         this.xBoundRight = 250;
@@ -136,6 +140,9 @@ export default class Game extends Phaser.Scene{
         if(this.shouldCheckForMatches){
             this.clearBlocks();
         }
+        if(this.shouldCheckForFalling){
+            this.handleFallingBlocks();
+        }
 	}
 
     //setBlocksOutOfFrame
@@ -158,7 +165,7 @@ export default class Game extends Phaser.Scene{
     handleUserInput(): void {
         if(this.cursors?.space.isDown && this.keyDownObject.space == false){
             this.shouldCheckForMatches = true;
-            this.swapOrMoveBlocks();
+            this.swapBlocksInSelectors();
             this.keyDownObject.space = true;
         }
         if(this.cursors?.space.isUp){
@@ -166,9 +173,9 @@ export default class Game extends Phaser.Scene{
         }
         //when user hits shift, it should push up all the blocks so the next row is revealed
 		if(this.cursors?.shift.isDown && this.keyDownObject.shift == false){
-            this.upSpeed = 20*this.upSpeed;
+            this.upSpeed*20
 			this.keyDownObject.shift = true;
-            this.time.delayedCall(215, () => this.upSpeed = this.upSpeed/20);
+            this.time.delayedCall(215, () => this.upSpeed/20);
 		}
 		if(this.cursors?.shift.isUp){
 			this.keyDownObject.shift = false;
@@ -206,13 +213,13 @@ export default class Game extends Phaser.Scene{
 		}		
 
 		if(this.cursors?.up.isDown && this.keyDownObject.up == false){
-            //may need to add y bounds eventually
-			this.selector1.rowNum -= 1;
-            this.selector2.rowNum -= 1;
-
-            this.selector1.selectorSprite.y -= this.blockSize;
-            this.selector2.selectorSprite.y -= this.blockSize;
-
+            if(this.selector1.rowNum >= 1){
+                this.selector1.rowNum -= 1;
+                this.selector2.rowNum -= 1;
+    
+                this.selector1.selectorSprite.y -= this.blockSize;
+                this.selector2.selectorSprite.y -= this.blockSize;
+            }
 			this.keyDownObject.up = true;
 		}	
 		if(this.cursors?.up.isUp){
@@ -220,13 +227,13 @@ export default class Game extends Phaser.Scene{
 		}			
 
 		if(this.cursors?.down.isDown && this.keyDownObject.down == false){
-            //may need to add y bounds eventually
-			this.selector1.rowNum += 1;
-            this.selector2.rowNum += 1;
-
-            this.selector1.selectorSprite.y += this.blockSize;
-            this.selector2.selectorSprite.y += this.blockSize;
-
+            if(this.boardArray[this.selector1.rowNum+1][this.selector1.colNum].isInPlay){
+                this.selector1.rowNum += 1;
+                this.selector2.rowNum += 1;
+    
+                this.selector1.selectorSprite.y += this.blockSize;
+                this.selector2.selectorSprite.y += this.blockSize;
+            }
 			this.keyDownObject.down = true;
 		}	
 		if(this.cursors?.down.isUp){
@@ -234,14 +241,21 @@ export default class Game extends Phaser.Scene{
 		}
     }
 
-    swapOrMoveBlocks(): void {
+    swapBlocksInSelectors(): void {
         //animate them to slide like .1 seconds before making this swap to make it look smooth
-        let block1Type = this.boardArray[this.selector1.rowNum][this.selector1.colNum].blockType;
-        this.boardArray[this.selector1.rowNum][this.selector1.colNum].blockType = this.boardArray[this.selector2.rowNum][this.selector2.colNum].blockType;
-        this.boardArray[this.selector2.rowNum][this.selector2.colNum].blockType = block1Type;
+        this.shouldCheckForFalling = true;
+        this.exchangeTypesAndTextures(this.selector1.colNum, this.selector1.rowNum, this.selector2.colNum, this.selector2.rowNum);
+    }
 
-        this.boardArray[this.selector1.rowNum][this.selector1.colNum].blockSprite.setTexture(this.boardArray[this.selector2.rowNum][this.selector2.colNum].blockSprite.texture.key);
-        this.boardArray[this.selector2.rowNum][this.selector2.colNum].blockSprite.setTexture(block1Type);
+    exchangeTypesAndTextures(col1: number, row1: number, col2: number, row2: number): void {
+        let block1 = _.clone(this.boardArray[row1][col1]);
+        let block2 = _.clone(this.boardArray[row2][col2]);
+
+        this.boardArray[row1][col1].blockType = block2.blockType;
+        this.boardArray[row2][col2].blockType = block1.blockType;
+
+        this.boardArray[row1][col1].blockSprite.setTexture(block2.blockType);
+        this.boardArray[row2][col2].blockSprite.setTexture(block1.blockType);
     }
 
     clearBlocks(): void {
@@ -268,7 +282,7 @@ export default class Game extends Phaser.Scene{
                 while (col + count < board[row].length && board[row][col + count]?.blockType === block.blockType && board[row][col + count].isInPlay) {
                     count++;
                 }
-        
+
                 // If 3 or more blocks match, mark them
                 if (count >= 3) {
                     for (let i = 0; i < count; i++) {
@@ -307,6 +321,25 @@ export default class Game extends Phaser.Scene{
             this.boardArray[row][col].blockType = BlockTypes.emptyBlock;
             this.boardArray[row][col].blockSprite.setTexture(BlockTypes.emptyBlock);
         });
+        this.shouldCheckForFalling = true;
+    }
+
+    handleFallingBlocks(){
+        //works, TODO: now we need to work on detecting combos from the falling blocks(the only way to combo)
+        for (let col = 0; col < this.boardArray[0].length; col++) {
+            let highestEmptyRow = -1;  // Track the highest row that is empty
+            for (let row = this.boardArray.length - 1; row >= 0; row--) {
+                if (this.boardArray[row][col].blockType ==  BlockTypes.emptyBlock && highestEmptyRow == -1) {
+                    highestEmptyRow = row;  // Found an empty space
+                }
+                else if (this.boardArray[row][col].blockType != BlockTypes.emptyBlock && highestEmptyRow !== -1) {
+                    this.exchangeTypesAndTextures(col, highestEmptyRow, col, row);
+                    highestEmptyRow -= 1; // Update the emptyRow to the next empty space
+
+                }
+            }
+        }
+        this.shouldCheckForFalling = false;
     }
     //#endregion
 
