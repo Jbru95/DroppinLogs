@@ -12,6 +12,9 @@ export default class Game extends Phaser.Scene{
     public selector2!: Selector;
     public boardArray: Block[][] = [];
 
+    public topLeftBoardCorner!: Phaser.GameObjects.Sprite;
+
+
     public keyDownObject = {
         left: false,
         up: false,
@@ -21,8 +24,6 @@ export default class Game extends Phaser.Scene{
         shift: false
     }
     public ceilingLine!: Phaser.GameObjects.Sprite;
-    public blockTypes!: BlockTypes;
-
     public blockScale!: number; //number to convert between index and pixel spaces
     public blockSize!: number; //pixel
     public upSpeed!: number;
@@ -50,14 +51,14 @@ export default class Game extends Phaser.Scene{
     {
         this.blockScale = 0.2;
         this.blockSize = 50;
-        this.upSpeed = -10;
+        this.upSpeed = -5;
         this.downSpeed = 200;
         this.xBoundLeft = 50;
         this.xBoundRight = 250;
         this.yBoundBottom = ((this.game.config.height as number) - this.blockSize/2);
         this.yBoundTop = 25;
         this.offsetx = 50;
-        this.offsety = 500;
+        this.offsety = 200;
     }
     //#endregion
 
@@ -70,23 +71,33 @@ export default class Game extends Phaser.Scene{
     }
 
     createSelectors(): void {
-        let selector1Sprite = this.add.sprite(150, 500, 'selector');
+        //add a sprite to the corner to help calculate sprite positions from board row and column
+        let corner = this.add.sprite(this.offsetx, this.offsety, 'selector');
+        corner.alpha = 0;     
+        corner.scale = 0.01;
+        this.physics.add.existing(corner, false);
+        if(corner.body != null){
+            corner.body.velocity.y = this.upSpeed;
+        }
+        this.topLeftBoardCorner = corner;
+
+        let selector1Sprite = this.add.sprite(this.offsetx, this.offsety, 'selector');
         selector1Sprite.scale = this.blockScale;
         selector1Sprite.setDepth(100);
         this.physics.add.existing(selector1Sprite, false);
         if(selector1Sprite.body != null){
             selector1Sprite.body.velocity.y = this.upSpeed;
         }
-        this.selector1 = new Selector(0, 2, selector1Sprite);
+        this.selector1 = new Selector(0, 0, selector1Sprite);
 
-        let selector2Sprite = this.add.sprite(200, 500, 'selector');
+        let selector2Sprite = this.add.sprite(this.offsetx + this.blockSize, this.offsety, 'selector');
         selector2Sprite.scale = this.blockScale;
         selector2Sprite.setDepth(100);
         this.physics.add.existing(selector2Sprite, false);
         if(selector2Sprite.body != null){
             selector2Sprite.body.velocity.y = this.upSpeed;
         }
-        this.selector2 = new Selector(0,3, selector2Sprite);
+        this.selector2 = new Selector(0,1, selector2Sprite);
     }
     
     createFromFile(boardString: string): void {
@@ -135,7 +146,7 @@ export default class Game extends Phaser.Scene{
 
     //#region Update Functions
     update(){
-        this.setBlocksOutOfFrame();
+        this.setBlockOpacities();
         this.handleUserInput();
         if(this.shouldCheckForMatches){
             this.clearBlocks();
@@ -145,8 +156,7 @@ export default class Game extends Phaser.Scene{
         }
 	}
 
-    //setBlocksOutOfFrame
-    setBlocksOutOfFrame(): void {
+    setBlockOpacities(): void {
         const height: number = Number.parseInt(this.game.config.height.toString());
         this.boardArray.forEach(row => {
             row.forEach(block => {
@@ -157,6 +167,10 @@ export default class Game extends Phaser.Scene{
                 else{
                     block.blockSprite.clearAlpha();
                     block.isInPlay = true;
+                }
+
+                if(block.blockType == BlockTypes.emptyBlock){
+                    block.blockSprite.alpha = 0.001;
                 }
             })
         })
@@ -242,20 +256,44 @@ export default class Game extends Phaser.Scene{
     }
 
     swapBlocksInSelectors(): void {
-        //animate them to slide like .1 seconds before making this swap to make it look smooth
-        this.shouldCheckForFalling = true;
-        this.exchangeTypesAndTextures(this.selector1.colNum, this.selector1.rowNum, this.selector2.colNum, this.selector2.rowNum);
+        this.swapBlocksAndAnimate(this.selector1.colNum, this.selector1.rowNum, this.selector2.colNum, this.selector2.rowNum);
     }
 
-    exchangeTypesAndTextures(col1: number, row1: number, col2: number, row2: number): void {
+    swapBlocksAndAnimate(col1: number, row1: number, col2: number, row2: number): void {
+        let swapSpeed = 200;
+
         let block1 = _.clone(this.boardArray[row1][col1]);
         let block2 = _.clone(this.boardArray[row2][col2]);
 
-        this.boardArray[row1][col1].blockType = block2.blockType;
-        this.boardArray[row2][col2].blockType = block1.blockType;
+        let block1Col = block1.colNum;
+        let block1Row = block1.rowNum;
 
-        this.boardArray[row1][col1].blockSprite.setTexture(block2.blockType);
-        this.boardArray[row2][col2].blockSprite.setTexture(block1.blockType);
+        let block2Col = block2.colNum;
+        let block2Row = block2.rowNum;
+
+        block1.colNum = block2Col;
+        block1.rowNum = block2Row;
+        this.boardArray[row2][col2] = block1;
+        this.shouldCheckForFalling = true;
+        
+        this.tweens.add({
+            targets: block1.blockSprite,
+            y: this.calculateYfromRow(block1.rowNum) + this.upSpeed*(swapSpeed/1000),
+            x: this.calculateXfromCol(block1.colNum),
+            duration: swapSpeed
+        });
+
+        block2.colNum = block1Col;
+        block2.rowNum = block1Row;
+        this.boardArray[row1][col1] = block2;
+        this.shouldCheckForFalling = true;
+
+        this.tweens.add({
+            targets: block2.blockSprite,
+            y: this.calculateYfromRow(block2.rowNum) + this.upSpeed*(swapSpeed/1000),
+            x: this.calculateXfromCol(block2.colNum),
+            duration: swapSpeed
+        });
     }
 
     clearBlocks(): void {
@@ -330,16 +368,25 @@ export default class Game extends Phaser.Scene{
             let highestEmptyRow = -1;  // Track the highest row that is empty
             for (let row = this.boardArray.length - 1; row >= 0; row--) {
                 if (this.boardArray[row][col].blockType ==  BlockTypes.emptyBlock && highestEmptyRow == -1) {
-                    highestEmptyRow = row;  // Found an empty space
+                    highestEmptyRow = row;  // Found the highest number(lowest on board) empty row in that column
                 }
-                else if (this.boardArray[row][col].blockType != BlockTypes.emptyBlock && highestEmptyRow !== -1) {
-                    this.exchangeTypesAndTextures(col, highestEmptyRow, col, row);
-                    highestEmptyRow -= 1; // Update the emptyRow to the next empty space
-
+                if (this.boardArray[row][col].blockType != BlockTypes.emptyBlock && highestEmptyRow !== -1) {
+                    this.swapBlocksAndAnimate(col, highestEmptyRow, col, row);
+                    highestEmptyRow -= 1;
                 }
             }
         }
         this.shouldCheckForFalling = false;
+        this.shouldCheckForMatches = true; //potential combo
+    }
+
+    //make sure to use these results immediately, as the velocity will change in the meantime and make this out of date
+    calculateXfromCol(col: number): number{
+        return this.topLeftBoardCorner.x + this.blockSize*col;
+    } 
+
+    calculateYfromRow(row: number): number{
+        return this.topLeftBoardCorner.y + this.blockSize*row;
     }
     //#endregion
 
