@@ -6,7 +6,6 @@ import * as _ from 'lodash';
 //Things to work on
 //Add combos
 //Add sprites/sounds for combos
-//Make blocks move over then fall after - bug when you move a block over and it hits a horizontal clear when it should fall instead
 //maybe add some scoring that counts up for the number of blocks cleared
 //Add more to gameover functionality
 
@@ -20,8 +19,8 @@ export default class Game extends Phaser.Scene{
     public score: number = 0;
     public scoreReading!: Phaser.GameObjects.Text;
 
-    public swapSpeed: number = 100;
-    public fallSpeed: number = 400;
+    public swapSpeed: number = 400;
+    public fallSpeed: number = 800;
 
     public keyDownObject = {
         left: false,
@@ -59,7 +58,7 @@ export default class Game extends Phaser.Scene{
     {
         this.blockScale = 0.2;
         this.blockSize = 50;
-        this.upSpeed = -10;
+        this.upSpeed = -0;
         this.xBoundLeft = 50;
         this.xBoundRight = 250;
         this.yBoundBottom = ((this.game.config.height as number) - this.blockSize/2);
@@ -192,7 +191,6 @@ export default class Game extends Phaser.Scene{
 
     handleUserInput(): void {
         if(this.cursors?.space.isDown && this.keyDownObject.space == false){
-            this.shouldCheckForMatches = true;
             this.swapBlocksInSelectors();
             this.keyDownObject.space = true;
         }
@@ -289,26 +287,41 @@ export default class Game extends Phaser.Scene{
 
         block1.colNum = block2Col;
         block1.rowNum = block2Row;
+        block1.isSet = false;
         this.boardArray[row2][col2] = block1;
-        this.shouldCheckForFalling = true;
+
         
         this.tweens.add({
             targets: block1.blockSprite,
             y: this.calculateYfromRow(block1.rowNum) + this.upSpeed*(swapSpeed/1000),
             x: this.calculateXfromCol(block1.colNum),
-            duration: swapSpeed
+            duration: swapSpeed,
+            onComplete: () => {
+                if(this.boardArray[row1+1][col1].blockType != BlockTypes.emptyBlock){
+                    this.boardArray[row1][col1].isSet = true;
+                }
+                this.shouldCheckForFalling = true;
+                this.shouldCheckForMatches = true;
+            }
         });
 
         block2.colNum = block1Col;
         block2.rowNum = block1Row;
+        block2.isSet = false;
         this.boardArray[row1][col1] = block2;
-        this.shouldCheckForFalling = true;
 
         this.tweens.add({
             targets: block2.blockSprite,
             y: this.calculateYfromRow(block2.rowNum) + this.upSpeed*(swapSpeed/1000),
             x: this.calculateXfromCol(block2.colNum),
-            duration: swapSpeed
+            duration: swapSpeed,
+            onComplete: () => {
+                if(this.boardArray[row2+1][col2].blockType != BlockTypes.emptyBlock){
+                    this.boardArray[row2][col2].isSet = true;
+                }               
+                this.shouldCheckForFalling = true;
+                this.shouldCheckForMatches = true;
+            }
         });
     }
 
@@ -323,6 +336,7 @@ export default class Game extends Phaser.Scene{
     }
 
     matchAndReturnBlocks(board: Block[][]): Set<Block>{
+        //checks and returns the board for all matches called next frame after shouldCheckForMatches is true
         const chains = new Set<Block>();
 
         //horizontal chain detection
@@ -370,6 +384,7 @@ export default class Game extends Phaser.Scene{
     }
 
     clearChainsFromBoard(blocks: Set<Block>){
+        //clears chains if match returns any blocks, sets checkforfalling to true if any are cleared after they are removed
         let blockArray = [...blocks];
         if(blockArray.length > 3){
             this.createPopUpTextAtBlock(blockArray.length.toString(), blockArray[0]);
@@ -381,7 +396,7 @@ export default class Game extends Phaser.Scene{
                 targets: block.blockSprite,
                 scaleX: 0.05,
                 scaleY: 0.05,
-                duration: 200,
+                duration: 500,
                 onComplete: () => {
                     //add a pop or star sprites maybe
                     this.sound.play('clear');
@@ -394,7 +409,6 @@ export default class Game extends Phaser.Scene{
     }
 
     handleFallingBlocks(){
-        //works, TODO: now we need to work on detecting combos from the falling blocks(the only way to combo)
         for (let col = 0; col < this.boardArray[0].length; col++) {
             let highestEmptyRow = -1;  // Track the highest row that is empty
             for (let row = this.boardArray.length - 1; row >= 0; row--) {
@@ -445,7 +459,7 @@ export default class Game extends Phaser.Scene{
         //can maybe change this to just check the highest row on the screen by keeping track of the highest and lowest the user can see
         this.boardArray.forEach(row => {
             row.forEach(block => {
-                if (block.blockSprite.y < this.yBoundTop) {
+                if (block.blockSprite.y < this.yBoundTop && block.blockType != BlockTypes.emptyBlock) {
                     // Add Game Over logic here, such as stopping the scene, showing a menu, etc.
                     this.scene.pause();
                     // this.scene.restart();
