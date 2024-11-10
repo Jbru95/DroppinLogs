@@ -5,11 +5,12 @@ import * as _ from 'lodash';
 
 //Things to work on
 //Add lose functionality when the blocks hit the top
-//Add some basic sounds for moving pieces and clearing maybe
-//Add sprites for when 4/5/6/7/8 blocks are cleared
+//Add sprites/animation for when 4/5/6/7/8 blocks are cleared
 //Add combos
 //Add sprites/sounds for combos
-
+//Make blocks move over then fall after
+//bug when you move a block over and it hits a horizontal clear when it should fall instead
+//maybe add some scoring that counts up for the number of blocks cleared
 
 export default class Game extends Phaser.Scene{
 
@@ -19,8 +20,8 @@ export default class Game extends Phaser.Scene{
     public selector2!: Selector;
     public boardArray: Block[][] = [];
 
-    public topLeftBoardCorner!: Phaser.GameObjects.Sprite;
-
+    public swapSpeed: number = 100;
+    public fallSpeed: number = 400;
 
     public keyDownObject = {
         left: false,
@@ -30,16 +31,15 @@ export default class Game extends Phaser.Scene{
         space: false,
         shift: false
     }
+    public topLeftBoardCorner!: Phaser.GameObjects.Sprite;
     public ceilingLine!: Phaser.GameObjects.Sprite;
     public blockScale!: number; //number to convert between index and pixel spaces
     public blockSize!: number; //pixel
     public upSpeed!: number;
-    public downSpeed!: number;
     public xBoundLeft!: number; //index based
     public xBoundRight!: number; //index based
     public yBoundBottom!: number;
     public yBoundTop!: number;
-    public boardWidth!: number;
     public offsetx!: number;
     public offsety!: number;
 
@@ -60,7 +60,6 @@ export default class Game extends Phaser.Scene{
         this.blockScale = 0.2;
         this.blockSize = 50;
         this.upSpeed = -10;
-        this.downSpeed = 200;
         this.xBoundLeft = 50;
         this.xBoundRight = 250;
         this.yBoundBottom = ((this.game.config.height as number) - this.blockSize/2);
@@ -73,6 +72,7 @@ export default class Game extends Phaser.Scene{
     //#region Create Functions
     create ()
     {
+        // this.sound.mute = true;
         this.createSelectors();
         // this.createRandom(6,8);
         this.createFromFile(testFiles.test3);
@@ -172,10 +172,10 @@ export default class Game extends Phaser.Scene{
         this.boardArray.forEach(row => {
             row.forEach(block => {
                 if(block.blockSprite.getBottomCenter().y! > height){
-                    block.blockSprite.alpha = 0.5;
+                    block.blockSprite.alpha = 0.4;
                     block.isInPlay = false;
                 }
-                else{
+                else if(block.blockSprite.alpha == 0.4){
                     block.blockSprite.clearAlpha();
                     block.isInPlay = true;
                 }
@@ -271,18 +271,16 @@ export default class Game extends Phaser.Scene{
     }
 
     swapBlocksInSelectors(): void {
-        this.swapBlocksAndAnimate(this.selector1.colNum, this.selector1.rowNum, this.selector2.colNum, this.selector2.rowNum);
+        this.sound.play('swap');
+        this.swapBlocksAndAnimate(this.selector1.colNum, this.selector1.rowNum, this.selector2.colNum, this.selector2.rowNum, this.swapSpeed);
     }
 
-    swapBlocksAndAnimate(col1: number, row1: number, col2: number, row2: number): void {
-        let swapSpeed = 200;
-
+    swapBlocksAndAnimate(col1: number, row1: number, col2: number, row2: number, swapSpeed: number): void {
         let block1 = _.clone(this.boardArray[row1][col1]);
         let block2 = _.clone(this.boardArray[row2][col2]);
 
         let block1Col = block1.colNum;
         let block1Row = block1.rowNum;
-
         let block2Col = block2.colNum;
         let block2Row = block2.rowNum;
 
@@ -321,14 +319,14 @@ export default class Game extends Phaser.Scene{
         }
     }
 
-    matchAndReturnsBlocks(board: Block[][]): Set<string>{
-        const chains = new Set<string>();
+    matchAndReturnsBlocks(board: Block[][]): Set<Block>{
+        const chains = new Set<Block>();
 
         //horizontal chain detection
         for (let row = 0; row < board.length; row++) {
             for (let col = 0; col < board[row].length; col++) {
                 const block = board[row][col];
-                if (block.blockType == BlockTypes.emptyBlock || !block.isInPlay) continue;
+                if (block.blockType == BlockTypes.emptyBlock || !block.isInPlay || !block.isSet) continue;
         
                 // Check to the right (horizontal match)
                 let count = 1;
@@ -339,7 +337,7 @@ export default class Game extends Phaser.Scene{
                 // If 3 or more blocks match, mark them
                 if (count >= 3) {
                     for (let i = 0; i < count; i++) {
-                        chains.add(`${row},${col + i}`);
+                        chains.add(this.boardArray[row][col+i]);
                     }
                 }
             }
@@ -349,7 +347,7 @@ export default class Game extends Phaser.Scene{
         for (let col = 0; col < board[0].length; col++) {
             for (let row = 0; row < board.length; row++) {
                 const block = board[row][col];
-                if (block.blockType == BlockTypes.emptyBlock || !block.isInPlay) continue;
+                if (block.blockType == BlockTypes.emptyBlock || !block.isInPlay || !block.isSet) continue;
 
                 // Check downward (vertical match)
                 let count = 1;
@@ -360,7 +358,7 @@ export default class Game extends Phaser.Scene{
                 // If 3 or more blocks match, mark them
                 if (count >= 3) {
                     for (let i = 0; i < count; i++) {
-                        chains.add(`${row + i},${col}`);
+                        chains.add(this.boardArray[row+i][col]);
                     }
                 }
             }
@@ -368,13 +366,26 @@ export default class Game extends Phaser.Scene{
         return chains;
     }
 
-    clearChainsFromBoard(blockCoords: Set<string>){
-        blockCoords.forEach(blockCoord => {
-            const [row, col] = blockCoord.split(',').map(Number);
-            this.boardArray[row][col].blockType = BlockTypes.emptyBlock;
-            this.boardArray[row][col].blockSprite.setTexture(BlockTypes.emptyBlock);
-        });
-        this.shouldCheckForFalling = true;
+    clearChainsFromBoard(blocks: Set<Block>){
+        [...blocks].forEach(block => {
+            block.isSet = false;
+            console.log(block);
+            this.tweens.add(({
+                targets: block.blockSprite,
+                scaleX: 0.05,
+                scaleY: 0.05,
+                duration: 200,
+                onComplete: () => {
+                    //add a pop or star sprites maybe
+                    this.sound.play('clear');
+                    block.blockType = BlockTypes.emptyBlock;
+                    block.blockSprite.setTexture(BlockTypes.emptyBlock);
+                    this.shouldCheckForFalling = true;
+                }
+            }))
+        })
+
+        
     }
 
     handleFallingBlocks(){
@@ -386,7 +397,7 @@ export default class Game extends Phaser.Scene{
                     highestEmptyRow = row;  // Found the highest number(lowest on board) empty row in that column
                 }
                 if (this.boardArray[row][col].blockType != BlockTypes.emptyBlock && highestEmptyRow !== -1) {
-                    this.swapBlocksAndAnimate(col, highestEmptyRow, col, row);
+                    this.swapBlocksAndAnimate(col, highestEmptyRow, col, row, this.fallSpeed);
                     highestEmptyRow -= 1;
                 }
             }
