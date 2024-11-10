@@ -3,6 +3,13 @@ import { Block, BlockTypes } from '../entities/block';
 import { Selector } from '../entities/selector';
 import * as _ from 'lodash';
 
+//Things to work on
+//Add lose functionality when the blocks hit the top
+//Add some basic sounds for moving pieces and clearing maybe
+//Add sprites for when 4/5/6/7/8 blocks are cleared
+//Add combos
+//Add sprites/sounds for combos
+
 
 export default class Game extends Phaser.Scene{
 
@@ -38,6 +45,7 @@ export default class Game extends Phaser.Scene{
 
     public shouldCheckForMatches: boolean = false;
     public shouldCheckForFalling: boolean = false;
+    public shouldCheckForSpeedChanges: boolean = false;
 
     constructor(){
         super('game');
@@ -51,7 +59,7 @@ export default class Game extends Phaser.Scene{
     {
         this.blockScale = 0.2;
         this.blockSize = 50;
-        this.upSpeed = -5;
+        this.upSpeed = -10;
         this.downSpeed = 200;
         this.xBoundLeft = 50;
         this.xBoundRight = 250;
@@ -154,6 +162,9 @@ export default class Game extends Phaser.Scene{
         if(this.shouldCheckForFalling){
             this.handleFallingBlocks();
         }
+        if(this.shouldCheckForSpeedChanges){
+            this.handleSpeedChanges();
+        }
 	}
 
     setBlockOpacities(): void {
@@ -187,9 +198,13 @@ export default class Game extends Phaser.Scene{
         }
         //when user hits shift, it should push up all the blocks so the next row is revealed
 		if(this.cursors?.shift.isDown && this.keyDownObject.shift == false){
-            this.upSpeed*20
+            this.shouldCheckForSpeedChanges = true;
+            this.upSpeed = this.upSpeed * 21;
 			this.keyDownObject.shift = true;
-            this.time.delayedCall(215, () => this.upSpeed/20);
+            this.time.delayedCall(215, () => {
+                this.upSpeed = this.upSpeed / 21;
+                this.shouldCheckForSpeedChanges = true;
+            });
 		}
 		if(this.cursors?.shift.isUp){
 			this.keyDownObject.shift = false;
@@ -378,6 +393,27 @@ export default class Game extends Phaser.Scene{
         }
         this.shouldCheckForFalling = false;
         this.shouldCheckForMatches = true; //potential combo
+    }
+
+    handleSpeedChanges(){
+        if(this.selector1.selectorSprite.body != null){
+            this.selector1.selectorSprite.body.velocity.y = this.upSpeed;
+        }
+        if(this.selector2.selectorSprite.body != null){
+            this.selector2.selectorSprite.body.velocity.y = this.upSpeed;
+        }
+        if(this.topLeftBoardCorner.body != null){
+            this.topLeftBoardCorner.body.velocity.y = this.upSpeed;
+        }
+
+        this.boardArray.forEach(row => {
+            row.forEach(block => {
+                if(block.blockSprite.body != null){
+                    block.blockSprite.body.velocity.y = this.upSpeed;
+                }
+            })
+        });
+        this.shouldCheckForSpeedChanges = false;
     }
 
     //make sure to use these results immediately, as the velocity will change in the meantime and make this out of date
