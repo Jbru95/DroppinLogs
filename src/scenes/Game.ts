@@ -4,13 +4,11 @@ import { Selector } from '../entities/selector';
 import * as _ from 'lodash';
 
 //Things to work on
-//Add lose functionality when the blocks hit the top
-//Add sprites/animation for when 4/5/6/7/8 blocks are cleared
 //Add combos
 //Add sprites/sounds for combos
-//Make blocks move over then fall after
-//bug when you move a block over and it hits a horizontal clear when it should fall instead
+//Make blocks move over then fall after - bug when you move a block over and it hits a horizontal clear when it should fall instead
 //maybe add some scoring that counts up for the number of blocks cleared
+//Add more to gameover functionality
 
 export default class Game extends Phaser.Scene{
 
@@ -19,6 +17,8 @@ export default class Game extends Phaser.Scene{
     public selector1!: Selector;
     public selector2!: Selector;
     public boardArray: Block[][] = [];
+    public score: number = 0;
+    public scoreReading!: Phaser.GameObjects.Text;
 
     public swapSpeed: number = 100;
     public fallSpeed: number = 400;
@@ -73,12 +73,14 @@ export default class Game extends Phaser.Scene{
     create ()
     {
         // this.sound.mute = true;
-        this.createSelectors();
+        this.createMiscObjects();
         // this.createRandom(6,8);
         this.createFromFile(testFiles.test3);
     }
 
-    createSelectors(): void {
+    createMiscObjects(): void {
+        this.initScore();
+
         //add a sprite to the corner to help calculate sprite positions from board row and column
         let corner = this.add.sprite(this.offsetx, this.offsety, 'selector');
         corner.alpha = 0;     
@@ -154,6 +156,7 @@ export default class Game extends Phaser.Scene{
 
     //#region Update Functions
     update(){
+        this.checkGameOver();
         this.setBlockOpacities();
         this.handleUserInput();
         if(this.shouldCheckForMatches){
@@ -310,7 +313,7 @@ export default class Game extends Phaser.Scene{
     }
 
     clearBlocks(): void {
-        let blocksToRemove = this.matchAndReturnsBlocks(this.boardArray);
+        let blocksToRemove = this.matchAndReturnBlocks(this.boardArray);
         if(blocksToRemove.size == 0){
             this.shouldCheckForMatches = false;
         }
@@ -319,7 +322,7 @@ export default class Game extends Phaser.Scene{
         }
     }
 
-    matchAndReturnsBlocks(board: Block[][]): Set<Block>{
+    matchAndReturnBlocks(board: Block[][]): Set<Block>{
         const chains = new Set<Block>();
 
         //horizontal chain detection
@@ -367,9 +370,13 @@ export default class Game extends Phaser.Scene{
     }
 
     clearChainsFromBoard(blocks: Set<Block>){
-        [...blocks].forEach(block => {
+        let blockArray = [...blocks];
+        if(blockArray.length > 3){
+            this.createPopUpTextAtBlock(blockArray.length.toString(), blockArray[0]);
+        } 
+        this.updateScore(blockArray.length);
+        blockArray.forEach(block => {
             block.isSet = false;
-            console.log(block);
             this.tweens.add(({
                 targets: block.blockSprite,
                 scaleX: 0.05,
@@ -384,8 +391,6 @@ export default class Game extends Phaser.Scene{
                 }
             }))
         })
-
-        
     }
 
     handleFallingBlocks(){
@@ -434,6 +439,79 @@ export default class Game extends Phaser.Scene{
 
     calculateYfromRow(row: number): number{
         return this.topLeftBoardCorner.y + this.blockSize*row;
+    }
+
+    checkGameOver(): void {
+        //can maybe change this to just check the highest row on the screen by keeping track of the highest and lowest the user can see
+        this.boardArray.forEach(row => {
+            row.forEach(block => {
+                if (block.blockSprite.y < this.yBoundTop) {
+                    // Add Game Over logic here, such as stopping the scene, showing a menu, etc.
+                    this.scene.pause();
+                    // this.scene.restart();
+                    // this.scene.start('Game'); //create a separate game-over scene
+                }
+            });
+        });
+    }
+
+    createPopUpTextAtBlock(text: string, block: Block): void {
+        const popUpText = this.add.text(
+            block.blockSprite.x,
+            block.blockSprite.y - this.blockSize / 4,
+            text,
+            {
+                font: '28px Arial',
+                color: '#FFFFFF',
+                stroke: '#000000',
+                strokeThickness: 5,
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5); // Centering the text
+
+        // Add animation for the pop-up effect
+        this.tweens.add({
+            targets: popUpText,
+            y: block.blockSprite.y - this.blockSize,
+            alpha: 0.2,
+            duration: 1000,
+            ease: 'Power1',
+            onComplete: () => {
+                popUpText.destroy(); // Remove text from the scene after animation
+            }
+        });
+    }
+
+    initScore(): void {
+        this.add.text(
+            500,
+            100,
+            "Score: ",
+            {
+                font: '28px Arial',
+                color: '#FFFFFF',
+                stroke: '#000000',
+                strokeThickness: 5,
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5);
+
+        this.scoreReading = this.add.text(
+            600,
+            100,
+            this.score.toString(),
+            {
+                font: '28px Arial',
+                color: '#FFFFFF',
+                stroke: '#000000',
+                strokeThickness: 5,
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5);
+    }
+
+    updateScore(scoreToAdd: number){
+        this.scoreReading.text = (Number.parseInt(this.scoreReading.text) + scoreToAdd).toString();
     }
     //#endregion
 
