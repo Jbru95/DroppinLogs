@@ -4,10 +4,8 @@ import { Selector } from '../entities/selector';
 import * as _ from 'lodash';
 
 //Things to work on
-//bug where swapping 
 //Add combos
 //Add sprites/sounds for combos
-//maybe add some scoring that counts up for the number of blocks cleared
 //Add more to gameover functionality
 
 export default class Game extends Phaser.Scene{
