@@ -4,9 +4,9 @@ import { Selector } from '../entities/selector';
 import * as _ from 'lodash';
 
 //Things to work on
-//bugs with combos, havent quite figured out when to reset combo counts
-//Add sprites/sounds for combos
+//bugs with combos, play to figure them out, but its not totally perfect
 //Add more to gameover functionality
+//maybe add sounds to combos
 
 export default class Game extends Phaser.Scene{
 
