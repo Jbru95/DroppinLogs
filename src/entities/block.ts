@@ -6,6 +6,7 @@ export class Block{
         this.blockType = blockType
         this.isInPlay = isInPlay;
         this.isSet = isSet;
+        this.comboCounter = 1;
     }
 
     rowNum: number;
@@ -14,6 +15,7 @@ export class Block{
     blockType: string;
     isInPlay: boolean;
     isSet: boolean;
+    comboCounter: number;
 }
 
 export enum BlockTypes {
@@ -23,5 +25,4 @@ export enum BlockTypes {
     lightningBlock = 'lightningBlock',
     psychicBlock = 'psychicBlock',
     emptyBlock = 'emptyBlock'
-
 }

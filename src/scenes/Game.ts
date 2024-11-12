@@ -4,7 +4,7 @@ import { Selector } from '../entities/selector';
 import * as _ from 'lodash';
 
 //Things to work on
-//Add combos
+//bugs with combos, havent quite figured out when to reset combo counts
 //Add sprites/sounds for combos
 //Add more to gameover functionality
 
@@ -45,6 +45,7 @@ export default class Game extends Phaser.Scene{
 
     public shouldCheckForMatches: boolean = false;
     public shouldCheckForFalling: boolean = false;
+    public shouldResetComboCounters: boolean = false;
     public shouldCheckForSpeedChanges: boolean = false;
 
     constructor(){
@@ -61,7 +62,7 @@ export default class Game extends Phaser.Scene{
         this.fallSpeed = 200;
         this.clearSpeed = 500;
         this.fallDelay = 200;
-        this.upSpeed = -10;
+        this.upSpeed = -5;
 
         this.blockScale = 0.2;
         this.blockSize = 50;
@@ -77,7 +78,7 @@ export default class Game extends Phaser.Scene{
     //#region Create Functions
     create ()
     {
-        // this.sound.mute = true;
+        this.sound.mute = true;
         this.createMiscObjects();
         // this.createRandom(6,8);
         this.createFromFile(testFiles.generalTest);
@@ -164,13 +165,20 @@ export default class Game extends Phaser.Scene{
         this.checkGameOver();
         this.setBlockOpacities();
         this.handleUserInput();
+        if(this.shouldResetComboCounters){
+            this.shouldResetComboCounters = false;
+            this.resetComboOnSetBlocks();
+        }
         if(this.shouldCheckForMatches){
+            this.shouldCheckForMatches = false;
             this.clearBlocks();
         }
         if(this.shouldCheckForFalling){
+            this.shouldCheckForFalling = false;
             this.handleFallingBlocks();
         }
         if(this.shouldCheckForSpeedChanges){
+            this.shouldCheckForSpeedChanges = false;
             this.handleSpeedChanges();
         }
 	}
@@ -187,7 +195,6 @@ export default class Game extends Phaser.Scene{
                     block.blockSprite.clearAlpha();
                     block.isInPlay = true;
                 }
-
                 if(block.blockType == BlockTypes.emptyBlock){
                     block.blockSprite.alpha = 0.001;
                 }
@@ -205,6 +212,7 @@ export default class Game extends Phaser.Scene{
         }
         //when user hits shift, it should push up all the blocks so the next row is revealed
 		if(this.cursors?.shift.isDown && this.keyDownObject.shift == false){
+            this.updateScore(1);
             this.shouldCheckForSpeedChanges = true;
             this.upSpeed = this.upSpeed * 21;
 			this.keyDownObject.shift = true;
@@ -306,14 +314,12 @@ export default class Game extends Phaser.Scene{
             x: this.calculateXfromCol(block1.colNum),
             duration: swapSpeed,
             onComplete: () => {
-                if(this.boardArray[row2+1][col2].blockType != BlockTypes.emptyBlock){
+                if(this.boardArray[row2+1] && this.boardArray[row2+1][col2].blockType != BlockTypes.emptyBlock){
                     this.boardArray[row2][col2].isSet = true;
                 }
                 if(this.boardArray[row2][col2].blockType == BlockTypes.emptyBlock){
                     this.boardArray[row2][col2].isSet = true;
                 }
-                this.shouldCheckForFalling = true;
-                this.shouldCheckForMatches = true;
             }
         });
 
@@ -328,9 +334,12 @@ export default class Game extends Phaser.Scene{
             x: this.calculateXfromCol(block2.colNum),
             duration: swapSpeed,
             onComplete: () => {
-                if(this.boardArray[row1+1][col1].blockType != BlockTypes.emptyBlock){
+                if(this.boardArray[row1+1] && this.boardArray[row1+1][col1].blockType != BlockTypes.emptyBlock){
                     this.boardArray[row1][col1].isSet = true;
-                }               
+                }    
+                if(this.boardArray[row1][col1].blockType == BlockTypes.emptyBlock){
+                    this.boardArray[row1][col1].isSet = true;
+                }
                 this.shouldCheckForFalling = true;
                 this.shouldCheckForMatches = true;
             }
@@ -340,7 +349,7 @@ export default class Game extends Phaser.Scene{
     clearBlocks(): void {
         let blocksToRemove = this.matchAndReturnBlocks(this.boardArray);
         if(blocksToRemove.size == 0){
-            this.shouldCheckForMatches = false;
+            this.shouldResetComboCounters = true; //TODO: fix this
         }
         else{
             this.clearChainsFromBoard(blocksToRemove);
@@ -398,10 +407,20 @@ export default class Game extends Phaser.Scene{
     clearChainsFromBoard(blocks: Set<Block>){
         //clears chains if match returns any blocks, sets checkforfalling to true if any are cleared after they are removed
         let blockArray = [...blocks];
-        if(blockArray.length > 3){
-            this.createPopUpTextAtBlock(blockArray.length.toString(), blockArray[0]);
-        } 
-        this.updateScore(blockArray.length);
+
+        let highestCombo = 1;
+        blocks.forEach(block => {
+            if(block.comboCounter > highestCombo){
+                highestCombo = block.comboCounter;
+            }
+        });
+
+        if(blockArray.length > 3) this.createPopUpTextAtBlock(blockArray.length.toString(), blockArray[0]);
+        if(highestCombo > 1) this.createPopUpTextAtBlock('x' + highestCombo.toString(), blockArray[0]);
+
+        this.updateScore(blockArray.length*highestCombo);
+        //send garbage blocks here
+
         this.sound.play('clear');
         blockArray.forEach(block => {
             this.boardArray[block.rowNum][block.colNum].isSet = false;
@@ -414,8 +433,11 @@ export default class Game extends Phaser.Scene{
                     //add a pop or star sprites maybe
                     block.blockType = BlockTypes.emptyBlock;
                     block.blockSprite.setTexture(BlockTypes.emptyBlock);
-                    this.boardArray[block.rowNum][block.colNum].isSet = true;
+                    this.boardArray[block.rowNum][block.colNum].isSet = true; //set these empty blocks
                     this.time.delayedCall(this.fallDelay, () => {
+                        if(block == blockArray.at(-1)){ //if this is the last block in the array
+                            this.incrementComboCounterForBlocksAbove(blockArray); //do this(we only want to call this once)
+                        }
                         this.shouldCheckForFalling = true;
                     })
                 }
@@ -436,8 +458,34 @@ export default class Game extends Phaser.Scene{
                 }
             }
         }
-        this.shouldCheckForFalling = false;
-        this.shouldCheckForMatches = true; //potential combo
+    }
+
+    incrementComboCounterForBlocksAbove(blocks: Block[]): void {
+        //Need to increment combo of blocks, but only once for the blocks above each block(not run multiple times)
+        let trackerObj: any = {}; //object that holds {colNum: lowest index(highest on board) rowNum}
+        let highestComboNum: number = 0;
+        blocks.forEach(block => {
+            if(block.comboCounter > highestComboNum) highestComboNum = block.comboCounter;
+
+            if(trackerObj[block.colNum]){
+                if(block.rowNum < trackerObj[block.colNum]){
+                    trackerObj[block.colNum] = block.rowNum;
+                }
+            }
+            else{
+                trackerObj[block.colNum] = block.rowNum;
+            }
+        });
+
+        Object.entries(trackerObj).forEach((rowColArray: any) => {
+            this.boardArray.forEach(row => {
+                row.forEach(block => {
+                    if(block.colNum == rowColArray[0] && block.rowNum < rowColArray[1]){ //if the block is in the same row and higher on the board
+                        block.comboCounter = highestComboNum + 1
+                    }
+                })
+            })
+        });
     }
 
     handleSpeedChanges(){
@@ -458,7 +506,6 @@ export default class Game extends Phaser.Scene{
                 }
             })
         });
-        this.shouldCheckForSpeedChanges = false;
     }
 
     //make sure to use these results immediately, as the velocity will change in the meantime and make this out of date
@@ -541,6 +588,17 @@ export default class Game extends Phaser.Scene{
 
     updateScore(scoreToAdd: number){
         this.scoreReading.text = (Number.parseInt(this.scoreReading.text) + scoreToAdd).toString();
+    }
+
+    resetComboOnSetBlocks(): void {
+        this.boardArray.forEach(row => {
+            row.forEach(block => {
+                if (block.isSet && block.comboCounter > 1 && block.isInPlay && block.blockType != BlockTypes.emptyBlock) {
+                    console.log(_.clone(block));
+                    block.comboCounter = 1;
+                }
+            });
+        });
     }
     //#endregion
 

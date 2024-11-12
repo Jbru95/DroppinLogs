@@ -1,6 +1,7 @@
 {
-    "generalTest": "eeeefe,efgwpg,fglfwl,glgwpg,fplpfw,lfpgwp,pwgppl,gpwflw,pfpggp,fglfwl,glgwpg,fplpfw,lfpgwp,pwgppl,gpwflw,pfpggp,fglfwl,glgwpg,fplpfw,lfpgwp,pwgppl,gpwflw,pfpggp,fglfwl,glgwpg,fplpfw,lfpgwp,pwgppl,gpwflw,pfpggp,fglfwl,glgwpg,fplpfw,lfpgwp,pwgppl,gpwflw,pfpggp,fglfwl,glgwpg,fplpfw,lfpgwp,pwgppl,gpwflw,pfpggp",
-    "verticalComboTest": "eegeee,eegeee,eewgee,eewpwe,eepwge,eeggwe",
-    "slideUnderComboTest": "eweeee,egleee,elfeee,elweee,pwpeee"
+    "generalTest": "eeeeee,eeeeee,eeeefe,efgwpg,fglfwl,glgwpg,fplpfw,lfpgwp,pwgppl,gpwflw,pfpggp,fglfwl,glgwpg,fplpfw,lfpgwp,pwgppl,gpwflw,pfpggp,fglfwl,glgwpg,fplpfw,lfpgwp,pwgppl,gpwflw,pfpggp,fglfwl,glgwpg,fplpfw,lfpgwp,pwgppl,gpwflw,pfpggp,fglfwl,glgwpg,fplpfw,lfpgwp,pwgppl,gpwflw,pfpggp,fglfwl,glgwpg,fplpfw,lfpgwp,pwgppl,gpwflw,pfpggp",
+    "verticalComboTest": "eefeee,eefeee,eegeee,eegeee,eewgee,eewpwe,eepwge,eeggwe,eeflle",
+    "horizontalComboTest": "eeeeel,eeewwl,eglggw,pfpfpl,fgfgfg",
+    "slideUnderComboTest": "eweeee,egleee,elfeee,elweee,pwpeee,fgfgfg"
 }
 
