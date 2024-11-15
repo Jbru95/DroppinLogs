@@ -78,7 +78,7 @@ export default class Game extends Phaser.Scene{
     //#region Create Functions
     create ()
     {
-        this.sound.mute = true;
+        this.sound.mute = false;
         this.createMiscObjects();
         // this.createRandom(6,8);
         this.createFromFile(testFiles.generalTest);
