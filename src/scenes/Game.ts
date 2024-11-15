@@ -134,7 +134,7 @@ export default class Game extends Phaser.Scene{
     }
 
     createBoard(boardString: string): void {
-        const possibleBlockArray: Array<string> = ['waterBlock', 'fireBlock', 'grassBlock', 'lightningBlock', 'psychicBlock', 'emptyBlock'];
+        const possibleBlockArray: Array<string> = ['blueBlock', 'redBlock', 'greenBlock', 'yellowBlock', 'purpleBlock', 'emptyBlock'];
         let x = 50;
         let y = 50;
 

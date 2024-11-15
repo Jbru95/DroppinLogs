@@ -19,10 +19,10 @@ export class Block{
 }
 
 export enum BlockTypes {
-    waterBlock =  'waterBlock',
-    grassBlock = 'grassBlock',
-    fireBlock = 'fireBlock',
-    lightningBlock = 'lightningBlock',
-    psychicBlock = 'psychicBlock',
+    blueBlock =  'blueBlock',
+    greenBlock = 'grassBlock',
+    redBlock = 'redBlock',
+    yellowBlock = 'yellowBlock',
+    purpleBlock = 'purpleBlock',
     emptyBlock = 'emptyBlock'
 }

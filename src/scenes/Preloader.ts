@@ -6,15 +6,28 @@ export default class Preloader extends Phaser.Scene{
     }
 
     preload() {
-        //images
-        this.load.image('fireBlock', 'textures/FireBlock.png');
-        this.load.image('waterBlock', 'textures/WaterBlock.png');
-        this.load.image('grassBlock', 'textures/GrassBlock.png');
-        this.load.image('lightningBlock', 'textures/LightningBlock.png');
-        this.load.image('psychicBlock', 'textures/PsychicBlock.png');
-        this.load.image('emptyBlock', 'textures/EmptyBlock.png');
-        this.load.image('selector', 'textures/Selector.png');
+        //block images
+        this.load.image('redBlock', 'textures/blocks/RedBlock.png');
+        this.load.image('blueBlock', 'textures/blocks/BlueBlock.png');
+        this.load.image('greenBlock', 'textures/blocks/GreenBlock.png');
+        this.load.image('yellowBlock', 'textures/blocks/YellowBlock.png');
+        this.load.image('purpleBlock', 'textures/blocks/PurpleBlock.png');
+        this.load.image('emptyBlock', 'textures/blocks/EmptyBlock.png');
+        this.load.image('selector', 'textures/blocks/Selector.png');
 
+        //other images
+        this.load.image('wreathStart', 'textures/WreathStart.png');
+        this.load.image('wreathStart', 'textures/WreathMiddle.png');
+        this.load.image('wreathStart', 'textures/WreathEnd.png');
+
+        this.load.image('ares', 'textures/Ares.png')
+        this.load.image('artemis', 'textures/Artemis.png')
+        this.load.image('dionysis', 'textures/Dionysis.png')
+        this.load.image('poseidon', 'textures/Poseidon.png')
+        this.load.image('zeus', 'textures/Zeus.png')
+
+        this.load.image('godBanner', 'textures/GodBanner.png');
+        this.load.image('pantheonTitle', 'textures/PantheonTitle.png');
         //sounds
         this.load.audio('swap', 'sounds/swap.mp3');
         this.load.audio('clear', 'sounds/clear.mp3');
@@ -22,6 +35,6 @@ export default class Preloader extends Phaser.Scene{
 
     create() {
         //starts a new scene when all the assets are preloaded(the function of this scene)
-        this.scene.start('game');
+        this.scene.start('menu');
     }
 }
