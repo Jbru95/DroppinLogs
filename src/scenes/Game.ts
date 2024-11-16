@@ -7,6 +7,7 @@ import * as _ from 'lodash';
 //bugs with combos, play to figure them out, but its not totally perfect
 //Add more to gameover functionality
 //maybe add sounds to combos
+//add better art for blocks and background of game scene
 
 export default class Game extends Phaser.Scene{
 
@@ -121,7 +122,7 @@ export default class Game extends Phaser.Scene{
     }
 
     createRandom(height: number, width: number): void {
-        const possibleBlockArray: Array<string> = ['w', 'f', 'g', 'l', 'p'];
+        const possibleBlockArray: Array<string> = ['b', 'r', 'g', 'y', 'p'];
         let boardString = "";
         for (let i=0; i < height; i++) {            
             for(let j=0; j < width; j++){
