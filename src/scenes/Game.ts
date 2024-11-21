@@ -8,6 +8,7 @@ import * as _ from 'lodash';
 //Add more to gameover functionality
 //maybe add sounds to combos
 //add better art for blocks and background of game scene
+//slight visual bug with end of draw wreath/border function
 
 export default class Game extends Phaser.Scene{
 
@@ -586,13 +587,14 @@ export default class Game extends Phaser.Scene{
     }
 
     drawWreath(xval:number, bottomBound:number, upperBound: number, scale: number, alpha: number ): void {
+        //may Need to work out a slight tweak for the end image, sometimes its off for some scales/bounds
+        //this can be used for any texture we want to display like a border(vertical for now)
         let a = this.add.image(0,0,'wreathStart').setScale(scale).setAlpha(0);
         let b = this.add.image(0,0,'wreathMiddle').setScale(scale).setAlpha(0);
         let c = this.add.image(0,0,'wreathEnd').setScale(scale).setAlpha(0);
 
-
         this.add.image(xval, bottomBound-(a.height/2*scale), 'wreathStart').setScale(scale).setAlpha(alpha);
-        let middlePieceCount = (bottomBound-(a.height*scale)-(c.height*scale)) / (b.height*scale);
+        let middlePieceCount = (bottomBound-upperBound-(a.height*scale)-(c.height*scale)) / (b.height*scale);
         for (let i = 0; i < middlePieceCount; i++) {
             this.add.image(xval, (bottomBound - (b.height*scale/2) - (a.height*scale))-(b.height*scale*i), 'wreathMiddle').setScale(scale).setAlpha(alpha);
         }
