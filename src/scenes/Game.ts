@@ -86,8 +86,8 @@ export default class Game extends Phaser.Scene{
 
     createMiscObjects(): void {
         this.initScore();
-        this.drawWreath(304, this.game.config.height as number, 0, (3/20), 0.5)
-        this.drawWreath(642, this.game.config.height as number, 0, (3/20), 0.5)
+        this.drawThreeSliceRepeatTexture(304, this.game.config.height as number, 0, 'wreath', (3/20), 0.7);
+        this.drawThreeSliceRepeatTexture(642, this.game.config.height as number, 0, 'wreath', (3/20), 0.7);
 
         //add a sprite to the corner to help calculate sprite positions from board row and column
         let corner = this.add.sprite(this.offsetx, this.offsety, 'selector');
@@ -586,19 +586,18 @@ export default class Game extends Phaser.Scene{
         ).setOrigin(0.5);
     }
 
-    drawWreath(xval:number, bottomBound:number, upperBound: number, scale: number, alpha: number ): void {
-        //may Need to work out a slight tweak for the end image, sometimes its off for some scales/bounds
-        //this can be used for any texture we want to display like a border(vertical for now)
-        let a = this.add.image(0,0,'wreathStart').setScale(scale).setAlpha(0);
-        let b = this.add.image(0,0,'wreathMiddle').setScale(scale).setAlpha(0);
-        let c = this.add.image(0,0,'wreathEnd').setScale(scale).setAlpha(0);
+    drawThreeSliceRepeatTexture(xval:number, bottomBound:number, upperBound: number, texture: string, scale: number = 1, alpha: number = 1): void {
+        // may Need to work out a slight tweak for the end image, sometimes its off for some scales/bounds
+        let a = this.add.image(0,0, texture + 'Start').setScale(scale).setAlpha(0);
+        let b = this.add.image(0,0, texture + 'Middle').setScale(scale).setAlpha(0);
+        let c = this.add.image(0,0, texture + 'End').setScale(scale).setAlpha(0);
 
-        this.add.image(xval, bottomBound-(a.height/2*scale), 'wreathStart').setScale(scale).setAlpha(alpha);
+        this.add.image(xval, bottomBound-(a.height/2*scale), texture + 'Start').setScale(scale).setAlpha(alpha);
         let middlePieceCount = (bottomBound-upperBound-(a.height*scale)-(c.height*scale)) / (b.height*scale);
         for (let i = 0; i < middlePieceCount; i++) {
-            this.add.image(xval, (bottomBound - (b.height*scale/2) - (a.height*scale))-(b.height*scale*i), 'wreathMiddle').setScale(scale).setAlpha(alpha);
+            this.add.image(xval, (bottomBound - (b.height*scale/2) - (a.height*scale))-(b.height*scale*i), texture + 'Middle').setScale(scale).setAlpha(alpha);
         }
-        this.add.image(xval, upperBound+c.height/2*scale, 'wreathEnd').setScale(scale).setAlpha(alpha);
+        this.add.image(xval, upperBound+c.height/2*scale, texture + 'End').setScale(scale).setAlpha(alpha);
     }
 
     updateScore(scoreToAdd: number){
