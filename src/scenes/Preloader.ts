@@ -17,8 +17,8 @@ export default class Preloader extends Phaser.Scene{
 
         //other images
         this.load.image('wreathStart', 'textures/WreathStart.png');
-        this.load.image('wreathStart', 'textures/WreathMiddle.png');
-        this.load.image('wreathStart', 'textures/WreathEnd.png');
+        this.load.image('wreathMiddle', 'textures/WreathMiddle.png');
+        this.load.image('wreathEnd', 'textures/WreathEnd.png');
 
         this.load.image('ares', 'textures/Ares.png')
         this.load.image('artemis', 'textures/Artemis.png')
@@ -35,6 +35,6 @@ export default class Preloader extends Phaser.Scene{
 
     create() {
         //starts a new scene when all the assets are preloaded(the function of this scene)
-        this.scene.start('menu');
+        this.scene.start('game'); //menu for menu, game for singleplayer mode
     }
 }

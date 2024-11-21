@@ -37,8 +37,6 @@ export default class Game extends Phaser.Scene{
     public blockScale!: number; //number to convert between index and pixel spaces
     public blockSize!: number; //pixel
     public upSpeed!: number;
-    public xBoundLeft!: number; //index based
-    public xBoundRight!: number; //index based
     public yBoundBottom!: number;
     public yBoundTop!: number;
     public offsetx!: number;
@@ -60,7 +58,7 @@ export default class Game extends Phaser.Scene{
     preload ()
     {
         //meausured in ms
-        this.swapSpeed = 1000;
+        this.swapSpeed = 100;
         this.fallSpeed = 100;  
         this.clearSpeed = 100;
         this.fallDelay = 100;
@@ -69,11 +67,9 @@ export default class Game extends Phaser.Scene{
 
         this.blockScale = 0.2;
         this.blockSize = 50;
-        this.xBoundLeft = 50;
-        this.xBoundRight = 250;
         this.yBoundBottom = ((this.game.config.height as number) - this.blockSize/2);
         this.yBoundTop = this.blockSize/2;
-        this.offsetx = 50; //how far from the left edge the board starts
+        this.offsetx = (this.game.config.width as number)/2 - (this.blockSize*3); //how far from the left edge the board starts
         this.offsety = this.blockSize/2;
     }
     //#endregion
@@ -89,6 +85,8 @@ export default class Game extends Phaser.Scene{
 
     createMiscObjects(): void {
         this.initScore();
+        this.drawWreath(304, this.game.config.height as number, 0, (3/20), 0.5)
+        this.drawWreath(642, this.game.config.height as number, 0, (3/20), 0.5)
 
         //add a sprite to the corner to help calculate sprite positions from board row and column
         let corner = this.add.sprite(this.offsetx, this.offsety, 'selector');
@@ -117,17 +115,6 @@ export default class Game extends Phaser.Scene{
             selector2Sprite.body.velocity.y = this.upSpeed;
         }
         this.selector2 = new Selector(0,1, selector2Sprite);
-
-        this.tweens.add({
-            targets: this.cameras.main,
-            props: {
-                zoom: { value: 2.5, duration: 4000, ease: 'Sine.easeInOut' },
-                rotation: { value: 2.3, duration: 8000, ease: 'Cubic.easeInOut' }
-            },
-            delay: 2000,
-            yoyo: true,
-            repeat: -1
-        });
     }
     
     createFromFile(boardString: string): void {
@@ -148,7 +135,7 @@ export default class Game extends Phaser.Scene{
     }
 
     createBoard(boardString: string): void {
-        const possibleBlockArray: Array<string> = ['blueBlock', 'redBlock', 'greenBlock', 'yellowBlock', 'purpleBlock', 'emptyBlock'];
+        const possibleBlockArray: Array<string> = [BlockTypes.blueBlock, BlockTypes.redBlock, BlockTypes.greenBlock, BlockTypes.yellowBlock, BlockTypes.purpleBlock, BlockTypes.emptyBlock];
         let x = 50;
         let y = 50;
 
@@ -241,13 +228,10 @@ export default class Game extends Phaser.Scene{
 		}	
         
 		if(this.cursors?.left.isDown && this.keyDownObject.left == false){
-            if(this.selector1.colNum > (this.xBoundLeft - this.offsetx)/this.blockSize){
+            if(this.selector1.colNum > 0){
                 this.selector1.colNum -= 1;
                 this.selector2.colNum -= 1;
 
-                //debating whether I should even do this here, or just make all the array based calculations then just repaint the blocks
-                //and selectors based on the array at the start of each frame, will need to do this if we have multiplayer with array stuff on backend
-                //and frontend just does painting and handling user input.
                 this.selector1.selectorSprite.x -= this.blockSize;
                 this.selector2.selectorSprite.x -= this.blockSize;
             }
@@ -258,7 +242,7 @@ export default class Game extends Phaser.Scene{
 		}		
 
 		if(this.cursors?.right.isDown && this.keyDownObject.right == false){
-            if(this.selector1.colNum < (this.xBoundRight - this.offsetx)/this.blockSize){
+            if(this.selector2.colNum < this.boardArray[0].length-1){
                 this.selector1.colNum += 1;
                 this.selector2.colNum += 1;
 
@@ -446,9 +430,6 @@ export default class Game extends Phaser.Scene{
                 onComplete: () => {
                     //add a pop or star sprites maybe
 
-
-
-
                     block.blockType = BlockTypes.emptyBlock;
                     block.blockSprite.setTexture(BlockTypes.emptyBlock);
                     this.boardArray[block.rowNum][block.colNum].isSet = true; //set these empty blocks
@@ -578,7 +559,7 @@ export default class Game extends Phaser.Scene{
 
     initScore(): void {
         this.add.text(
-            500,
+            750,
             100,
             "Score: ",
             {
@@ -591,7 +572,7 @@ export default class Game extends Phaser.Scene{
         ).setOrigin(0.5);
 
         this.scoreReading = this.add.text(
-            600,
+            850,
             100,
             this.score.toString(),
             {
@@ -602,6 +583,20 @@ export default class Game extends Phaser.Scene{
                 fontStyle: 'bold'
             }
         ).setOrigin(0.5);
+    }
+
+    drawWreath(xval:number, bottomBound:number, upperBound: number, scale: number, alpha: number ): void {
+        let a = this.add.image(0,0,'wreathStart').setScale(scale).setAlpha(0);
+        let b = this.add.image(0,0,'wreathMiddle').setScale(scale).setAlpha(0);
+        let c = this.add.image(0,0,'wreathEnd').setScale(scale).setAlpha(0);
+
+
+        this.add.image(xval, bottomBound-(a.height/2*scale), 'wreathStart').setScale(scale).setAlpha(alpha);
+        let middlePieceCount = (bottomBound-(a.height*scale)-(c.height*scale)) / (b.height*scale);
+        for (let i = 0; i < middlePieceCount; i++) {
+            this.add.image(xval, (bottomBound - (b.height*scale/2) - (a.height*scale))-(b.height*scale*i), 'wreathMiddle').setScale(scale).setAlpha(alpha);
+        }
+        this.add.image(xval, upperBound+c.height/2*scale, 'wreathEnd').setScale(scale).setAlpha(alpha);
     }
 
     updateScore(scoreToAdd: number){

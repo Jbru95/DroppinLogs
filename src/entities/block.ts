@@ -20,7 +20,7 @@ export class Block{
 
 export enum BlockTypes {
     blueBlock =  'blueBlock',
-    greenBlock = 'grassBlock',
+    greenBlock = 'greenBlock',
     redBlock = 'redBlock',
     yellowBlock = 'yellowBlock',
     purpleBlock = 'purpleBlock',
