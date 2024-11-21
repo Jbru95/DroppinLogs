@@ -22,6 +22,7 @@ export default class Menu extends Phaser.Scene {
     }
 
     createFlyingBlocks(): void {
+        //add funnel effect towards their god, don't pay riley for this idea
         this.blockGroup = this.add.group();
         for (let i = 0; i < 40; i++) {
 
@@ -51,6 +52,7 @@ export default class Menu extends Phaser.Scene {
         this.soloText = this.add.text(500, 500, 'Solo', { fontSize: '24px', fontFamily: 'Times New Roman',  color: '#bbbbbb' })
         .setInteractive({ useHandCursor: true })
         .setOrigin(0.5)
+        .setDepth(2)
         .on('pointerover', () => this.soloText.setStyle({ fill: '#ffffff' }))
         .on('pointerout', () => this.soloText.setStyle({ fill: '#bbbbbb' }))
         .on('pointerdown', () => this.startGame());
@@ -58,6 +60,7 @@ export default class Menu extends Phaser.Scene {
         this.oneVOneText= this.add.text(500, 540, '1 v 1 (in development)', { fontSize: '24px', fontFamily: 'Times New Roman', color: '#bbbbbb' })
         .setInteractive({ useHandCursor: true })
         .setOrigin(0.5)
+        .setDepth(2)
         .on('pointerover', () => this.oneVOneText.setStyle({ fill: '#ffffff' }))
         .on('pointerout', () => this.oneVOneText.setStyle({ fill: '#bbbbbb' }))
         .on('pointerdown', () => this.startGame());
@@ -65,6 +68,7 @@ export default class Menu extends Phaser.Scene {
         this.oneVCPUText = this.add.text(500, 580, '1 v CPU (in development)', { fontSize: '24px', fontFamily: 'Times New Roman', color: '#bbbbbb' })
         .setInteractive({ useHandCursor: true })
         .setOrigin(0.5)
+        .setDepth(2)
         .on('pointerover', () => this.oneVCPUText.setStyle({ fill: '#ffffff' }))
         .on('pointerout', () => this.oneVCPUText.setStyle({ fill: '#bbbbbb' }))
         .on('pointerdown', () => this.startGame());
@@ -72,6 +76,7 @@ export default class Menu extends Phaser.Scene {
         this.onlineVersusText = this.add.text(500, 620, 'Online Versus (in development)', { fontSize: '24px', fontFamily: 'Times New Roman', color: '#bbbbbb' })
         .setInteractive({ useHandCursor: true })
         .setOrigin(0.5)
+        .setDepth(2)
         .on('pointerover', () => this.onlineVersusText.setStyle({ fill: '#ffffff' }))
         .on('pointerout', () => this.onlineVersusText.setStyle({ fill: '#bbbbbb' }))
         .on('pointerdown', () => this.startGame());

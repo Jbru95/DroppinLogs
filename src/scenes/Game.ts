@@ -59,10 +59,12 @@ export default class Game extends Phaser.Scene{
 
     preload ()
     {
-        this.swapSpeed = 200;
-        this.fallSpeed = 200;
-        this.clearSpeed = 500;
-        this.fallDelay = 200;
+        //meausured in ms
+        this.swapSpeed = 1000;
+        this.fallSpeed = 100;  
+        this.clearSpeed = 100;
+        this.fallDelay = 100;
+        //measured in px/s
         this.upSpeed = -5;
 
         this.blockScale = 0.2;
@@ -70,9 +72,9 @@ export default class Game extends Phaser.Scene{
         this.xBoundLeft = 50;
         this.xBoundRight = 250;
         this.yBoundBottom = ((this.game.config.height as number) - this.blockSize/2);
-        this.yBoundTop = 25;
-        this.offsetx = 50;
-        this.offsety = 200;
+        this.yBoundTop = this.blockSize/2;
+        this.offsetx = 50; //how far from the left edge the board starts
+        this.offsety = this.blockSize/2;
     }
     //#endregion
 
@@ -115,6 +117,17 @@ export default class Game extends Phaser.Scene{
             selector2Sprite.body.velocity.y = this.upSpeed;
         }
         this.selector2 = new Selector(0,1, selector2Sprite);
+
+        this.tweens.add({
+            targets: this.cameras.main,
+            props: {
+                zoom: { value: 2.5, duration: 4000, ease: 'Sine.easeInOut' },
+                rotation: { value: 2.3, duration: 8000, ease: 'Cubic.easeInOut' }
+            },
+            delay: 2000,
+            yoyo: true,
+            repeat: -1
+        });
     }
     
     createFromFile(boardString: string): void {
@@ -432,6 +445,10 @@ export default class Game extends Phaser.Scene{
                 duration: this.clearSpeed,
                 onComplete: () => {
                     //add a pop or star sprites maybe
+
+
+
+
                     block.blockType = BlockTypes.emptyBlock;
                     block.blockSprite.setTexture(BlockTypes.emptyBlock);
                     this.boardArray[block.rowNum][block.colNum].isSet = true; //set these empty blocks
