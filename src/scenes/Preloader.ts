@@ -19,6 +19,9 @@ export default class Preloader extends Phaser.Scene{
         this.load.image('wreathStart', 'textures/WreathStart.png');
         this.load.image('wreathMiddle', 'textures/WreathMiddle.png');
         this.load.image('wreathEnd', 'textures/WreathEnd.png');
+        this.load.image('columnWhiteStart', 'textures/ColumnWhiteStart.png');
+        this.load.image('columnWhiteMiddle', 'textures/ColumnWhiteMiddle.png');
+        this.load.image('columnWhiteEnd', 'textures/ColumnWhiteEnd.png');
 
         this.load.image('ares', 'textures/Ares.png')
         this.load.image('artemis', 'textures/Artemis.png')

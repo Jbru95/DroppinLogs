@@ -1,7 +1,7 @@
 import testFiles from '../boardFiles/test.json';
 import { Block, BlockTypes } from '../entities/block';
 import { Selector } from '../entities/selector';
-import * as _ from 'lodash';
+import _ from 'lodash';
 
 //Things to work on
 //bugs with combos, play to figure them out, but its not totally perfect
@@ -15,7 +15,7 @@ import * as _ from 'lodash';
 
 //look into how to get a basic AI playing the game for 3rd mode
 
-//look into onlie versus eventually
+//look into online versus eventually
 
 
 
@@ -95,9 +95,10 @@ export default class Game extends Phaser.Scene{
 
     createMiscObjects(): void {
         this.initScore();
-
-        this.drawThreeSliceRepeatTexture(300, this.game.config.height as number - 5, this.game.config.height as number - 20, 'wreath', (4/20), 0.7);
-        this.drawThreeSliceRepeatTexture(650, this.game.config.height as number - 5, this.game.config.height as number - 20, 'wreath', (4/20), 0.7);
+        this.drawThreeSliceRepeatTexture(100, this.game.config.height as number - 5, this.game.config.height as number - 20, 'wreath', (3/20), 0.7);
+        this.drawThreeSliceRepeatTexture(300, this.game.config.height as number - 5, this.game.config.height as number - 20, 'columnWhite', (3/20), 0.7);
+        this.drawThreeSliceRepeatTexture(650, this.game.config.height as number - 5, this.game.config.height as number - 20, 'columnWhite', (3/20), 0.7);
+        this.drawThreeSliceRepeatTexture(800, this.game.config.height as number - 5, this.game.config.height as number - 20, 'wreath', (3/20), 0.7);
 
         //add a sprite to the corner to help calculate sprite positions from board row and column
         let corner = this.add.sprite(this.offsetx, this.offsety, 'selector');
@@ -641,7 +642,7 @@ export default class Game extends Phaser.Scene{
         this.boardArray.forEach(row => {
             row.forEach(block => {
                 if (block.isSet && block.comboCounter > 1 && block.isInPlay && block.blockType != BlockTypes.emptyBlock) {
-                    console.log(_.clone(block));
+                    // console.log(_.clone(block));
                     block.comboCounter = 1;
                 }
             });
