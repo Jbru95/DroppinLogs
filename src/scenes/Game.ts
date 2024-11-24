@@ -8,7 +8,16 @@ import * as _ from 'lodash';
 //Add more to gameover functionality
 //maybe add sounds to combos
 //add better art for blocks and background of game scene
-//slight visual bug with end of draw wreath/border function
+//add some data passing so menu or another scene passes which board to load to game scene
+
+//maybe generalize this scene as board and have inputs passed in? we will need 2 boards for local multiplayer
+//figure this out before starting 1v1 local mode
+
+//look into how to get a basic AI playing the game for 3rd mode
+
+//look into onlie versus eventually
+
+
 
 export default class Game extends Phaser.Scene{
 
@@ -87,12 +96,8 @@ export default class Game extends Phaser.Scene{
     createMiscObjects(): void {
         this.initScore();
 
-        this.drawThreeSliceRepeatTexture(0, 100, 200, 'wreath', (3/20), 0.7, true, false);
-        this.drawThreeSliceRepeatTexture(200, 200, 200, 'wreath', (3/20), 0.7, true, true);
-
-
-        this.drawThreeSliceRepeatTexture(304, this.game.config.height as number - 5, this.game.config.height as number - 20, 'wreath', (3/20), 0.7);
-        this.drawThreeSliceRepeatTexture(642, this.game.config.height as number - 5, this.game.config.height as number - 20, 'wreath', (3/20), 0.7);
+        this.drawThreeSliceRepeatTexture(300, this.game.config.height as number - 5, this.game.config.height as number - 20, 'wreath', (4/20), 0.7);
+        this.drawThreeSliceRepeatTexture(650, this.game.config.height as number - 5, this.game.config.height as number - 20, 'wreath', (4/20), 0.7);
 
         //add a sprite to the corner to help calculate sprite positions from board row and column
         let corner = this.add.sprite(this.offsetx, this.offsety, 'selector');
