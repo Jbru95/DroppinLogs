@@ -1,7 +1,8 @@
 import testFiles from '../boardFiles/test.json';
-import { Block, BlockTypes } from '../entities/block';
-import { Selector } from '../entities/selector';
+import { Block, BlockTypes } from '../entities/Block';
+import { Selector } from '../entities/Selector';
 import _ from 'lodash';
+import { Utils } from '../helpers/Helpers';
 
 //Things to work on
 //bugs with combos, play to figure them out, but its not totally perfect
@@ -20,6 +21,8 @@ import _ from 'lodash';
 
 
 export default class Game extends Phaser.Scene{
+
+    public utils: Utils = new Utils();
 
     //#region Init Variables and Preload
     public cursors: Phaser.Types.Input.Keyboard.CursorKeys | undefined;
@@ -95,33 +98,27 @@ export default class Game extends Phaser.Scene{
 
     createMiscObjects(): void {
         this.initScore();
-        this.drawThreeSliceRepeatTexture(100, this.game.config.height as number - 5, this.game.config.height as number - 20, 'wreath', (3/20), 0.7);
-        this.drawThreeSliceRepeatTexture(300, this.game.config.height as number - 5, this.game.config.height as number - 20, 'columnWhite', (3/20), 0.7);
-        this.drawThreeSliceRepeatTexture(650, this.game.config.height as number - 5, this.game.config.height as number - 20, 'columnWhite', (3/20), 0.7);
-        this.drawThreeSliceRepeatTexture(800, this.game.config.height as number - 5, this.game.config.height as number - 20, 'wreath', (3/20), 0.7);
+        this.utils.drawThreeSliceRepeatTexture(this, 100, this.game.config.height as number - 5, this.game.config.height as number - 20, 'wreath', (3/20), 0.7);
+        this.utils.drawThreeSliceRepeatTexture(this, 300, this.game.config.height as number - 5, this.game.config.height as number - 20, 'columnWhite', (3/20), 0.7);
+        this.utils.drawThreeSliceRepeatTexture(this, 650, this.game.config.height as number - 5, this.game.config.height as number - 20, 'columnWhite', (3/20), 0.7);
+        this.utils.drawThreeSliceRepeatTexture(this, 800, this.game.config.height as number - 5, this.game.config.height as number - 20, 'wreath', (3/20), 0.7);
 
         //add a sprite to the corner to help calculate sprite positions from board row and column
-        let corner = this.add.sprite(this.offsetx, this.offsety, 'selector');
-        corner.alpha = 0;     
-        corner.scale = 0.01;
+        let corner = this.add.sprite(this.offsetx, this.offsety, 'selector').setAlpha(0).setScale(0.01);
         this.physics.add.existing(corner, false);
         if(corner.body != null){
             corner.body.velocity.y = this.upSpeed;
         }
         this.topLeftBoardCorner = corner;
 
-        let selector1Sprite = this.add.sprite(this.offsetx, this.offsety, 'selector');
-        selector1Sprite.scale = this.blockScale;
-        selector1Sprite.setDepth(100);
+        let selector1Sprite = this.add.sprite(this.offsetx, this.offsety, 'selector').setScale(this.blockScale).setDepth(100);
         this.physics.add.existing(selector1Sprite, false);
         if(selector1Sprite.body != null){
             selector1Sprite.body.velocity.y = this.upSpeed;
         }
         this.selector1 = new Selector(0, 0, selector1Sprite);
 
-        let selector2Sprite = this.add.sprite(this.offsetx + this.blockSize, this.offsety, 'selector');
-        selector2Sprite.scale = this.blockScale;
-        selector2Sprite.setDepth(100);
+        let selector2Sprite = this.add.sprite(this.offsetx + this.blockSize, this.offsety, 'selector').setScale(this.blockScale).setDepth(100);
         this.physics.add.existing(selector2Sprite, false);
         if(selector2Sprite.body != null){
             selector2Sprite.body.velocity.y = this.upSpeed;
@@ -596,44 +593,7 @@ export default class Game extends Phaser.Scene{
             }
         ).setOrigin(0.5);
     }
-
-    drawThreeSliceRepeatTexture(xval:number, yval:number, length: number, texture: string, scale: number = 1, alpha: number = 1, horizontal: boolean =  false, reverse: boolean = false): void {
-        //fits as many middle piece as it can without being larger than the length, and then puts the end on top, but scales perfectly
-        let a = this.add.image(0,0, texture + 'Start').setScale(scale).setAlpha(0);
-        let b = this.add.image(0,0, texture + 'Middle').setScale(scale).setAlpha(0);
-        let c = this.add.image(0,0, texture + 'End').setScale(scale).setAlpha(0);
-        let middlePieceCount = ((length-(a.height*scale)-(c.height*scale)) / (b.height*scale)) | 0;
-
-        if (!reverse && !horizontal){ //vertical bottom to top
-            this.add.image(xval, yval-(a.height/2*scale), texture + 'Start').setScale(scale).setAlpha(alpha);
-            for (let i = 0; i < middlePieceCount+1; i++) {
-                this.add.image(xval, (yval - (b.height*scale/2) - (a.height*scale)) - (b.height*scale*i), texture + 'Middle').setScale(scale).setAlpha(alpha);
-            }
-            this.add.image(xval, yval - (a.height*scale) - b.height*scale*(middlePieceCount+1) - c.height*scale/2, texture + 'End').setScale(scale).setAlpha(alpha);    
-        }
-        else if(reverse && !horizontal){ //vertical top to bottom
-            this.add.image(xval, yval+(a.height/2*scale), texture + 'Start').setScale(scale).setAlpha(alpha).setAngle(180);
-            for (let i = 0; i < middlePieceCount+1; i++) {
-                this.add.image(xval, (yval + (b.height*scale/2) + (a.height*scale)) + (b.height*scale*i), texture + 'Middle').setScale(scale).setAlpha(alpha).setAngle(180);
-            }
-            this.add.image(xval, yval + (a.height*scale) + b.height*scale*(middlePieceCount+1) + c.height*scale/2, texture + 'End').setScale(scale).setAlpha(alpha).setAngle(180);
-        }
-        else if(!reverse && horizontal){ //horizontal left to right
-            this.add.image(xval+(a.height/2*scale), yval, texture + 'Start').setScale(scale).setAlpha(alpha).setAngle(90);
-            for (let i = 0; i < middlePieceCount+1; i++) {
-                this.add.image((xval + (b.height*scale/2) + (a.height*scale)) + (b.height*scale*i), yval, texture + 'Middle').setScale(scale).setAlpha(alpha).setAngle(90);
-            }
-            this.add.image(xval + (a.height*scale) + b.height*scale*(middlePieceCount+1) + c.height*scale/2, yval, texture + 'End').setScale(scale).setAlpha(alpha).setAngle(90);    
-        }
-        else if(reverse && horizontal){ //horizontal right to left
-            this.add.image(xval-(a.height/2*scale), yval, texture + 'Start').setScale(scale).setAlpha(alpha).setAngle(270);
-            for (let i = 0; i < middlePieceCount+1; i++) {
-                this.add.image((xval - (b.height*scale/2) - (a.height*scale)) - (b.height*scale*i), yval, texture + 'Middle').setScale(scale).setAlpha(alpha).setAngle(270);
-            }
-            this.add.image(xval - (a.height*scale) - b.height*scale*(middlePieceCount+1) - c.height*scale/2, yval, texture + 'End').setScale(scale).setAlpha(alpha).setAngle(270);    
-        }
-    }
-
+    
     updateScore(scoreToAdd: number){
         this.scoreReading.text = (Number.parseInt(this.scoreReading.text) + scoreToAdd).toString();
     }
@@ -649,5 +609,4 @@ export default class Game extends Phaser.Scene{
         });
     }
     //#endregion
-
 }
