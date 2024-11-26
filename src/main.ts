@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import Game from './scenes/Game';
 import Preloader from './scenes/Preloader';
-import Menu from './scenes/Menu';
 import Select from './scenes/Select';
+import Title from './scenes/Title';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -15,7 +15,7 @@ const config: Phaser.Types.Core.GameConfig = {
       gravity: {y: 0}
     }
   },
-  scene: [Preloader, Game, Menu, Select]
+  scene: [Preloader, Game, Title, Select]
 }
 
 export default new Phaser.Game(config);

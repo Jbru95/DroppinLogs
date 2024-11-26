@@ -81,6 +81,6 @@ export default class Preloader extends Phaser.Scene{
 
     create() {
         //starts a new scene when all the assets are preloaded(the function of this scene)
-        this.scene.start('menu'); //menu for menu, game for singleplayer mode
+        this.scene.start('title');
     }
 }

@@ -1,6 +1,6 @@
 import { Utils } from '../helpers/Helpers';
 
-export default class Menu extends Phaser.Scene {
+export default class Title extends Phaser.Scene {
     private Utils = new Utils();
 
     menuOffset = 135;
@@ -8,7 +8,7 @@ export default class Menu extends Phaser.Scene {
     menuScale = 0.22;
 
     constructor() {
-        super('menu');
+        super('title');
     }
 
     create(): void {
