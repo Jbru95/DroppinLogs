@@ -26,6 +26,7 @@ export default class Preloader extends Phaser.Scene{
         this.load.image('columnWhiteStart', 'src/assets/textures/ColumnWhiteStart.png');
         this.load.image('columnWhiteMiddle', 'src/assets/textures/ColumnWhiteMiddle.png');
         this.load.image('columnWhiteEnd', 'src/assets/textures/ColumnWhiteEnd.png');
+        this.load.image('menuButton', 'src/assets/textures/MenuButton.webp');
 
         // this.load.image('ares', 'src/assets/textures/Ares.png')
 
