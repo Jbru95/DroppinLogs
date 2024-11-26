@@ -16,7 +16,10 @@ export default class Preloader extends Phaser.Scene{
         this.load.image('selector', 'src/assets/textures/blocks/Selector.png');
 
         //game textures
-        this.load.image('pantheonTitle', 'src/assets/textures/PantheonTitle.png');
+        this.load.image('pantheonTitle1', 'src/assets/textures/PantheonTitle1.png');
+        this.load.image('pantheonTitle2', 'src/assets/textures/PantheonTitle2.webp');
+        this.load.image('pantheonTitle3', 'src/assets/textures/PantheonTitle3.webp');
+
         this.load.image('wreathStart', 'src/assets/textures/WreathStart.png');
         this.load.image('wreathMiddle', 'src/assets/textures/WreathMiddle.png');
         this.load.image('wreathEnd', 'src/assets/textures/WreathEnd.png');

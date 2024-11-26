@@ -8,7 +8,6 @@ import { Utils } from '../helpers/Helpers';
 //bugs with combos, play to figure them out, but its not totally perfect
 //Add more to gameover functionality
 //maybe add sounds to combos
-//add better art for blocks and background of game scene
 //add some data passing so menu or another scene passes which board to load to game scene
 
 //maybe generalize this scene as board and have inputs passed in? we will need 2 boards for local multiplayer
@@ -98,10 +97,9 @@ export default class Game extends Phaser.Scene{
 
     createMiscObjects(): void {
         this.initScore();
-        this.utils.drawThreeSliceRepeatTexture(this, 100, this.game.config.height as number - 5, this.game.config.height as number - 20, 'wreath', (3/20), 0.7);
-        this.utils.drawThreeSliceRepeatTexture(this, 300, this.game.config.height as number - 5, this.game.config.height as number - 20, 'columnWhite', (3/20), 0.7);
-        this.utils.drawThreeSliceRepeatTexture(this, 650, this.game.config.height as number - 5, this.game.config.height as number - 20, 'columnWhite', (3/20), 0.7);
-        this.utils.drawThreeSliceRepeatTexture(this, 800, this.game.config.height as number - 5, this.game.config.height as number - 20, 'wreath', (3/20), 0.7);
+        this.add.image(640,360,'general2').setAlpha(0.4).setScale(1.25, 0.7);
+        this.utils.drawThreeSliceRepeatTexture(this, 443, this.game.config.height as number - 5, this.game.config.height as number - 20, 'columnWhite', (3/20), 1);
+        this.utils.drawThreeSliceRepeatTexture(this, 785, this.game.config.height as number - 5, this.game.config.height as number - 20, 'columnWhite', (3/20), 1);
 
         //add a sprite to the corner to help calculate sprite positions from board row and column
         let corner = this.add.sprite(this.offsetx, this.offsety, 'selector').setAlpha(0).setScale(0.01);
@@ -568,7 +566,7 @@ export default class Game extends Phaser.Scene{
 
     initScore(): void {
         this.add.text(
-            750,
+            900,
             100,
             "Score: ",
             {
@@ -581,7 +579,7 @@ export default class Game extends Phaser.Scene{
         ).setOrigin(0.5);
 
         this.scoreReading = this.add.text(
-            850,
+            1050,
             100,
             this.score.toString(),
             {
