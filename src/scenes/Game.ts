@@ -4,24 +4,23 @@ import { Selector } from '../entities/Selector';
 import _ from 'lodash';
 import { Utils } from '../helpers/Helpers';
 
-//Things to work on
-//bugs with combos, play to figure them out, but its not totally perfect
-//Add more to gameover functionality
-//maybe add sounds to combos
-//add some data passing so menu or another scene passes which board to load to game scene
-
-//maybe generalize this scene as board and have inputs passed in? we will need 2 boards for local multiplayer
-//figure this out before starting 1v1 local mode
-
-//look into how to get a basic AI playing the game for 3rd mode
-
-//look into online versus eventually
-
-
+//TODO: bugs with combos, play to figure them out, but its not totally perfect
+//TODO: Add more to gameover functionality
+//TODO: maybe add sounds to combos
+//TODO: add god UI portion, including portrait, god bar that gets filled when something good happens
+//TODO: add single player god abilities
+//TODO: add which board to load to game scene
+//TODO: add multiple boards for local multiplayer and 1VCPU
+//TODO: add multiplayer features -> garbage blocks, grey blocks
+//TODO: add multi player god abilities
+//TODO: look into how to get a basic AI playing the game for 3rd mode
+//TODO: look into online versus eventually
 
 export default class Game extends Phaser.Scene{
 
     public utils: Utils = new Utils();
+    public godName: string = "";
+    public gameMode: string = "";
 
     //#region Init Variables and Preload
     public cursors: Phaser.Types.Input.Keyboard.CursorKeys | undefined;
@@ -63,7 +62,10 @@ export default class Game extends Phaser.Scene{
         super('game');
     }
 
-    init() {
+    init(data: any) {
+        this.godName = data.godName;
+        this.gameMode = data.mode;
+        console.log(this.godName, this.gameMode);
         this.cursors = this.input.keyboard?.createCursorKeys();
     }
 
@@ -98,8 +100,8 @@ export default class Game extends Phaser.Scene{
     createMiscObjects(): void {
         this.initScore();
         this.add.image(640,360,'general2').setAlpha(0.4).setScale(1.25, 0.7);
-        this.utils.drawThreeSliceRepeatTexture(this, 443, this.game.config.height as number - 5, this.game.config.height as number - 20, 'columnWhite', (3/20), 1);
-        this.utils.drawThreeSliceRepeatTexture(this, 785, this.game.config.height as number - 5, this.game.config.height as number - 20, 'columnWhite', (3/20), 1);
+        this.utils.drawThreeSliceRepeatTexture(this, 443, this.game.config.height as number - 5, this.game.config.height as number - 20, 'columnWhite', (3/20), 0.8);
+        this.utils.drawThreeSliceRepeatTexture(this, 785, this.game.config.height as number - 5, this.game.config.height as number - 20, 'columnWhite', (3/20), 0.8);
 
         //add a sprite to the corner to help calculate sprite positions from board row and column
         let corner = this.add.sprite(this.offsetx, this.offsety, 'selector').setAlpha(0).setScale(0.01);

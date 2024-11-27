@@ -57,3 +57,10 @@ export class Utils{
     }
 }
 
+export enum GameModes {
+    solo = 'solo',
+    oneVOne =  'oneVone',
+    oneVCPU = 'greenBlock',
+    onlineVersus = 'onlineVersus'
+}
+
