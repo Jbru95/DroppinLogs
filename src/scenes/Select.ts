@@ -11,6 +11,8 @@ export default class Select extends Phaser.Scene {
     }
 
     //TODO: do something with the empty space behind the god select
+    // maybe have like a background image with a pedestal or altar in the middle and the gods on the left and right sides of the page, clicking them makes their stuff appear in the middle
+
     //TODO: Add images of the god characters and intro sounds to each god other then Hephaestus
     //TODO: Add background images and maybe blocks for Ares???
 
@@ -56,7 +58,6 @@ export default class Select extends Phaser.Scene {
         if(this.selectedGodBackground){
             this.selectedGodBackground.destroy();
         }
-
 
         this.selectedGodName = this.add.text(-100, -100, godName.toUpperCase(), { fontSize: '40px', fontFamily: 'Times New Roman', color: 'white', fontStyle: 'bold' }).setOrigin(0.5);
         this.tweens.add({

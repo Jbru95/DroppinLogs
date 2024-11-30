@@ -99,7 +99,7 @@ export default class Game extends Phaser.Scene{
 
     createMiscObjects(): void {
         this.initScore();
-        this.add.image(640,360,'general2').setAlpha(0.4).setScale(1.25, 0.7);
+        this.add.image(640,360,'generalb2').setAlpha(0.4).setScale(0.7);
         this.utils.drawThreeSliceRepeatTexture(this, 443, this.game.config.height as number - 5, this.game.config.height as number - 20, 'columnWhite', (3/20), 0.8);
         this.utils.drawThreeSliceRepeatTexture(this, 785, this.game.config.height as number - 5, this.game.config.height as number - 20, 'columnWhite', (3/20), 0.8);
 
